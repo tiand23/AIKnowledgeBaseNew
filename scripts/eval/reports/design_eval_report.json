@@ -1,0 +1,1599 @@
+{
+  "summary": {
+    "dataset": "/Users/tiandi/Documents/01_work/01_项目相关/AIKnowledgeBaseNew/scripts/eval/dataset_ja.design.real.jsonl",
+    "endpoint": "hybrid",
+    "cases": 32,
+    "hit_at_k": 0.9688,
+    "recall_at_k": 0.9688,
+    "mrr": 0.888,
+    "first_rel_rank_avg": 1.2581
+  },
+  "failures": [
+    {
+      "id": "design_arch_04",
+      "query": "販売管理からどこへ情報が流れる？",
+      "k": 10,
+      "hit_at_k": false,
+      "first_rel_rank": null,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "retrieved": 10,
+      "relevant_in_topk": 0,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2874,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 39 ; maxfn: 66 ; field_name: koban_"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2873,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 56 ; maxfn: 66 ; field_name: in_kei"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2871,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 34 ; maxfn: 66 ; field_name: enduse"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.287,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 2 ; maxfn: 66 ; field_name: keiyaku"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2869,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 8 ; maxfn: 66 ; field_name: iso_flg"
+        }
+      ]
+    }
+  ],
+  "rows": [
+    {
+      "id": "design_arch_01",
+      "query": "システム構成図を見せて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1249,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1248,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1247,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1246,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        }
+      ]
+    },
+    {
+      "id": "design_arch_02",
+      "query": "システムイメージの全体像を説明して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 2,
+      "recall_at_k": 1.0,
+      "mrr": 0.5,
+      "retrieved": 10,
+      "relevant_in_topk": 1,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1249,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0501_vSetKouteiPattern.php"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1248,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1248,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0001_v_top.php ; col_21: 画"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1247,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0301_v_KojiKotei_input.php"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1246,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 7002_v_RollKengenMainte.ph"
+        }
+      ]
+    },
+    {
+      "id": "design_arch_03",
+      "query": "主要な業務ブロックと連携先を教えて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 7,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1249,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 3,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1248,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1247,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1246,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        }
+      ]
+    },
+    {
+      "id": "design_arch_04",
+      "query": "販売管理からどこへ情報が流れる？",
+      "k": 10,
+      "hit_at_k": false,
+      "first_rel_rank": null,
+      "recall_at_k": 0.0,
+      "mrr": 0.0,
+      "retrieved": 10,
+      "relevant_in_topk": 0,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2874,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 39 ; maxfn: 66 ; field_name: koban_"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2873,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 56 ; maxfn: 66 ; field_name: in_kei"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2871,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 34 ; maxfn: 66 ; field_name: enduse"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.287,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 2 ; maxfn: 66 ; field_name: keiyaku"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2869,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 8 ; maxfn: 66 ; field_name: iso_flg"
+        }
+      ]
+    },
+    {
+      "id": "design_arch_05",
+      "query": "PJ統括が関与する処理は何？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 3,
+      "recall_at_k": 1.0,
+      "mrr": 0.3333333333333333,
+      "retrieved": 10,
+      "relevant_in_topk": 4,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3421,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3417,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 3,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3414,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        },
+        {
+          "rank": 4,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3413,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 5,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.2873,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        }
+      ]
+    },
+    {
+      "id": "design_flow_01",
+      "query": "画面遷移図に基づいて画面間の関連を教えて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 9,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3464,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3419,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3414,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 4,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3412,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.2648,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        }
+      ]
+    },
+    {
+      "id": "design_flow_02",
+      "query": "負荷予測トップから遷移できる画面一覧は？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3454,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3451,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.345,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3444,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3441,
+          "text_preview": "画面一覧 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col_"
+        }
+      ]
+    },
+    {
+      "id": "design_flow_03",
+      "query": "報告資料作成の出力先はどこ？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 8,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3463,
+          "text_preview": "[图片] sheet=報告資料作成 page=- anchor=R9C3 ; description=報告資料作成图片#10"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3452,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 田辺理乃: 田辺理乃 ; 作成日: 更新日 ; 2015-06-25 00:00:00: 2015-12-11 00:00:00\n\n作成者: 更新者 ;"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3416,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3411,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3401,
+          "text_preview": "col_1: № ; 保守履歴一覧表: 作業指示№ ; col_15: 作業内容 ; col_45: シート名 ; col_65: 変更概要 ; col_103: 修正種別 ; col_107: 更新日 ; col_115: 担当者\n\nco"
+        }
+      ]
+    },
+    {
+      "id": "design_flow_04",
+      "query": "工程メンテナンスはどの画面とつながる？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 3,
+      "recall_at_k": 1.0,
+      "mrr": 0.3333333333333333,
+      "retrieved": 10,
+      "relevant_in_topk": 4,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3458,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3454,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3454,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3445,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3442,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        }
+      ]
+    },
+    {
+      "id": "design_flow_05",
+      "query": "ユーザー権限関連の遷移を整理して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3452,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3423,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3403,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.2657,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.2649,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        }
+      ]
+    },
+    {
+      "id": "design_flow_06",
+      "query": "入力と出力の関係だけ抽出して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3415,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3409,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3408,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3408,
+          "text_preview": "[图片] sheet=出力対象工番選択 page=- anchor=R9C4 ; description=出力対象工番選択图片#7"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3406,
+          "text_preview": "システム名: 負荷予測システム ; 作成者: 更新者 ; 田辺理乃: 田辺理乃 ; 作成日: 更新日 ; 2015-06-25 00:00:00: 2015-12-11 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日画面レイアウ"
+        }
+      ]
+    },
+    {
+      "id": "design_flow_07",
+      "query": "依存関係の強い画面はどれ？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.346,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3454,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 7002_v_RollKengenMainte.ph"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3451,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3449,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3448,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        }
+      ]
+    },
+    {
+      "id": "design_flow_08",
+      "query": "工事工程入力に関連する前後関係を説明して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 9,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3456,
+          "text_preview": "[图片] sheet=工事工程入力 page=- anchor=R9C3 ; description=工事工程入力图片#9"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3417,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3417,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3415,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 5,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3414,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        }
+      ]
+    },
+    {
+      "id": "design_list_01",
+      "query": "画面一覧を見せて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 8,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3461,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.346,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3459,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.345,
+          "text_preview": "画面一覧 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col_"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1249,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        }
+      ]
+    },
+    {
+      "id": "design_list_02",
+      "query": "画面IDと画面名の対応を教えて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3449,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 7002_v_RollKengenMainte.ph"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3439,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3423,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0001_v_top.php ; col_21: 画"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.342,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0501_vSetKouteiPattern.php"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3418,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0301_v_KojiKotei_input.php"
+        }
+      ]
+    },
+    {
+      "id": "design_list_03",
+      "query": "負荷予測関連の画面だけ抽出して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1249,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1248,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1248,
+          "text_preview": "システム名: 負荷予測システム ; 作成者: 更新者 ; 田辺理乃: 田辺理乃 ; 作成日: 更新日 ; 2015-06-25 00:00:00: 2015-12-11 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日画面レイアウ"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1247,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0201_v_AnkenTorikomi.php ;"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1246,
+          "text_preview": "0001 負荷予測トップ -> 7002 画面ロール権限 ; rel=连接 ; confidence=0.89\n\n0001 負荷予測トップ -> 7003 権限追加・削除 ; rel=连接 ; confidence=0.91\n\n0001 負"
+        }
+      ]
+    },
+    {
+      "id": "design_list_04",
+      "query": "管理系画面の候補を列挙して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1249,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1248,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1247,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0301_v_KojiKotei_input.php"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1246,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0201_v_AnkenTorikomi.php ;"
+        }
+      ]
+    },
+    {
+      "id": "design_list_05",
+      "query": "画面一覧の中でユーザー権限に関係するものは？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3462,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3461,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3456,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3451,
+          "text_preview": "[图片] sheet=ユーザー権限 page=- anchor=R9C3 ; description=ユーザー権限图片#12"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3449,
+          "text_preview": "[图片] sheet=画面ロール権限 page=- anchor=R9C3 ; description=画面ロール権限图片#13"
+        }
+      ]
+    },
+    {
+      "id": "design_layout_01",
+      "query": "負荷予測の画面レイアウト定義を確認したい",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.346,
+          "text_preview": "0001 負荷予測トップ -> 7002 画面ロール権限 ; rel=连接 ; confidence=0.89\n\n0001 負荷予測トップ -> 7003 権限追加・削除 ; rel=连接 ; confidence=0.91\n\n0001 負"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3454,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.345,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        },
+        {
+          "rank": 4,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3419,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3414,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        }
+      ]
+    },
+    {
+      "id": "design_layout_02",
+      "query": "この画面の主要な入力項目を整理して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3461,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3455,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3454,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.345,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3443,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 7002_v_RollKengenMainte.ph"
+        }
+      ]
+    },
+    {
+      "id": "design_layout_03",
+      "query": "ボタンや操作アクションの配置情報はある？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 4,
+      "recall_at_k": 1.0,
+      "mrr": 0.25,
+      "retrieved": 10,
+      "relevant_in_topk": 2,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1249,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1248,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1248,
+          "text_preview": "phpname: 010504_seizousiji_input ; functitle: 製造指示書入力 ; overvew: 製造指示書を作成・修正する際に使用 ; fn: 68 ; maxfn: 71 ; field_name: in"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1247,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1246,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        }
+      ]
+    },
+    {
+      "id": "design_layout_04",
+      "query": "検索条件エリアと結果エリアの説明をして",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.2874,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1249,
+          "text_preview": "phpname: 010502_seizousiji_search ; functitle: 製造指示書検索 ; overvew: 製造指示書を検索する際に使用 ; fn: 3 ; maxfn: 4 ; field_name: in_eta"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1248,
+          "text_preview": "phpname: 010503_seizousiji_result ; functitle: 製造指示書検索結果 ; overvew: 条件を基に検索結果を表示する ; fn: 4 ; maxfn: 12 ; field_name: eta"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1248,
+          "text_preview": "phpname: 010503_seizousiji_result ; functitle: 製造指示書検索結果 ; overvew: 条件を基に検索結果を表示する ; fn: 10 ; maxfn: 12 ; field_name: sh"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1247,
+          "text_preview": "担当引合工番一覧: 製造指示書検索 ; 引合工番の作成から申請までの一連の作業を行う際に使用: 製造指示書を検索する際に使用 ; 010101_hikiaikoban_mylist: 010502_seizousiji_search ; <"
+        }
+      ]
+    },
+    {
+      "id": "design_layout_05",
+      "query": "必須項目や入力制約が分かる箇所は？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1249,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1248,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.1247,
+          "text_preview": "phpname: 010504_seizousiji_input ; functitle: 製造指示書入力 ; overvew: 製造指示書を作成・修正する際に使用 ; fn: 68 ; maxfn: 71 ; field_name: in"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1246,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        }
+      ]
+    },
+    {
+      "id": "design_cross_01",
+      "query": "構成図と画面遷移図の差分を要約して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 8,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3462,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3418,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3415,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.2655,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.2639,
+          "text_preview": "0001 負荷予測トップ -> 7002 画面ロール権限 ; rel=连接 ; confidence=0.89\n\n0001 負荷予測トップ -> 7003 権限追加・削除 ; rel=连接 ; confidence=0.91\n\n0001 負"
+        }
+      ]
+    },
+    {
+      "id": "design_cross_02",
+      "query": "工程登録に関係する情報を文書横断で集めて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.342,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3419,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2871,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 39 ; maxfn: 66 ; field_name: koban_"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.287,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 56 ; maxfn: 66 ; field_name: in_kei"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.2869,
+          "text_preview": "phpname: 010404_keiyakujoho_input ; functitle: 契約情報修正 ; overvew: 契約情報を編集する際に使用 ; fn: 34 ; maxfn: 66 ; field_name: enduse"
+        }
+      ]
+    },
+    {
+      "id": "design_cross_03",
+      "query": "負荷対象設定の入力元と出力先を整理して",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3422,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3422,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1788,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1246,
+          "text_preview": "システム名: 負荷予測システム ; 作成者: 更新者 ; 田辺理乃: 田辺理乃 ; 作成日: 更新日 ; 2015-06-25 00:00:00: 2015-12-11 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日画面レイアウ"
+        }
+      ]
+    },
+    {
+      "id": "design_cross_04",
+      "query": "報告資料出力に関する設計情報をまとめて",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3423,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3417,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 3,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3417,
+          "text_preview": "col_1 | 工番負荷予測システムイメージ図\n\n[diagram_node] 工番負荷確認業務\n\n[diagram_node] 工番工程登録業務\n\n[diagram_node] 負荷対象管理業務\n\n[diagram_node] ①随時 【"
+        },
+        {
+          "rank": 4,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.3415,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        },
+        {
+          "rank": 5,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1783,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        }
+      ]
+    },
+    {
+      "id": "design_cross_05",
+      "query": "システムのイメージをみたい",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 9,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1249,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0501_vSetKouteiPattern.php"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1248,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 3,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1248,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1247,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1246,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0301_v_KojiKotei_input.php"
+        }
+      ]
+    },
+    {
+      "id": "design_paraphrase_01",
+      "query": "システム構成図お願い",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 9,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1249,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 2,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1248,
+          "text_preview": "[diagram_summary] この図は工番負荷予測システムの全体構成を示しています。主に工番情報の登録と負荷対象管理業務に関連するプロセスが含まれています。\n主要構成要素: 販売管理、工番登録業務、負荷対象管理業務、工番負荷確認業務処"
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1247,
+          "text_preview": "col_16: ユーザー権限 ; col_43: 保存\n\ncol_16: 画面ロール権限 ; col_43: 保存\n\ncol_16: 権限追加・削除 ; col_43: 保存\n\n[diagram_node] 0001 負荷予測トップ\n\n[d"
+        },
+        {
+          "rank": 5,
+          "file_name": "システムイメージ.xlsx",
+          "file_md5": "d72db019f2c6eb79aab9bef31458756d",
+          "score": 0.1246,
+          "text_preview": "システムイメージ工番負荷予測システムイメージ図コウバンフカヨソクズ工番負荷確認業務工番負荷確認業務工番工程登録業務負荷対象管理業務\n①随時【工番確定時】\n工程登録\n②週次\nSI・SE\n③随時工事\nPJ統括販売管理工事工程入力工番案件リスト取"
+        }
+      ]
+    },
+    {
+      "id": "design_paraphrase_02",
+      "query": "画面遷移図お願い",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1249,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 2,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.1248,
+          "text_preview": "画面遷移図 | col_2 | col_3 | col_4 | col_5 | col_6 | col_7 | col_8 | col_9 | col_10 | col_11 | col_12 | col_13 | col_14 | col"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1248,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0301_v_KojiKotei_input.php"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1247,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 0501_vSetKouteiPattern.php"
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.1246,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        }
+      ]
+    },
+    {
+      "id": "design_paraphrase_03",
+      "query": "どの画面からどの画面に行けるの？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3461,
+          "text_preview": "[图片] sheet=画面レイアウト(ログイン) page=1 anchor=R-C- ; description=original workbook snapshot page=1, sheet=画面レイアウト(ログイン)\n\n[图片] s"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3455,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 3,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3455,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        },
+        {
+          "rank": 4,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3454,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 5,
+          "file_name": "画面レイアウト(負荷予測).xlsx",
+          "file_md5": "2a5606e65b5e61e6ff472225d3faef8b",
+          "score": 0.3451,
+          "text_preview": "col_3: 画面レイアウト ; システム名: 社内負荷予測 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_1: 画面ID ; col_7: 7002_v_RollKengenMainte.ph"
+        }
+      ]
+    },
+    {
+      "id": "design_paraphrase_04",
+      "query": "この機能の設計ドキュメントはどこにある？",
+      "k": 10,
+      "hit_at_k": true,
+      "first_rel_rank": 1,
+      "recall_at_k": 1.0,
+      "mrr": 1.0,
+      "retrieved": 10,
+      "relevant_in_topk": 10,
+      "top_hits": [
+        {
+          "rank": 1,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3417,
+          "text_preview": "情報処理NO: ID10214-029 ; 作成者: 更新者 ; 設楽直矢: 設楽直矢 ; 作成日: 更新日 ; 2014-11-19 00:00:00: 2015-01-23 00:00:00\n\n作成者: 更新者 ; 設楽直矢: 田辺理乃"
+        },
+        {
+          "rank": 2,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3417,
+          "text_preview": "画面一覧: 4 ; col_3: 0301 ; col_9: 0301_v_koutei_input ; col_23: 工事工程入力 ; col_38: 対象工番の「工事開始日」「納期」を入力する為の機能 ; col_67: 検索・保存 "
+        },
+        {
+          "rank": 3,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.341,
+          "text_preview": "システム名: プロジェクト予算管理 ; プロセス名: 工程資料取込 ; 作成者: 更新者 ; 作成日: 更新日作成者: 更新者 ; 作成日: 更新日\n\ncol_19: 工程資料取込\n\n[diagram_node] 00-01 プロジェクト予"
+        },
+        {
+          "rank": 4,
+          "file_name": "10_画面遷移図_負荷予測システム.xlsx",
+          "file_md5": "db0d61fb55889cf546b16b7ea060a941",
+          "score": 0.3408,
+          "text_preview": "システム名: 負荷予測 ; 作成者: 更新者 ; 設楽直矢: 田辺理乃 ; 作成日: 更新日 ; 2014-11-05 00:00:00: 2015-07-31 00:00:00\n\n作成者: 更新者 ; 作成日: 更新日\n\ncol_65: "
+        },
+        {
+          "rank": 5,
+          "file_name": "画面一覧.xlsm",
+          "file_md5": "a3fb5ea45d6c5f4e8870fc95f401b053",
+          "score": 0.3402,
+          "text_preview": "画面一覧: 9 ; col_3: 7003 ; col_9: 7003_v_KengenMente ; col_23: 権限追加・削除 ; col_38: 各権限の作成・削除を行う機能 ; col_67: 保存、削除 ; col_91: 管"
+        }
+      ]
+    }
+  ]
+}
