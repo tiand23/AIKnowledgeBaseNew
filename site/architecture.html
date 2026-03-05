@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Architecture - AI Knowledge Base Platform</title>
+    <style>
+      :root { --bg:#f4f7fb; --panel:#fff; --ink:#1f2a37; --muted:#5f6d7d; --line:#d9e2ee; --brand:#0d7872; }
+      * { box-sizing:border-box; }
+      body { margin:0; font-family:"Avenir Next","Segoe UI",sans-serif; color:var(--ink); background:radial-gradient(circle at 8% 8%, rgba(13,120,114,.08), transparent 28%), var(--bg); }
+      .wrap { max-width:1080px; margin:0 auto; padding:24px 16px 48px; }
+      .top { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+      .btn { text-decoration:none; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-weight:700; color:var(--ink); background:#fff; }
+      .btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+      h1 { margin:8px 0; font-size:clamp(28px,4vw,44px); }
+      p, li { color:var(--muted); line-height:1.68; }
+      .section { margin-top:12px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+      .section h2 { margin:0 0 10px; font-size:24px; }
+      .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+      .card { border:1px solid #dce6f1; border-radius:10px; background:#fbfdff; padding:10px; }
+      .card b { color:var(--brand); }
+      .diagram { border:1px dashed #bed0e4; border-radius:12px; background:#fbfdff; padding:10px; overflow:auto; }
+      svg text { font-family:"Avenir Next","Segoe UI",sans-serif; fill:#21313f; }
+      table { width:100%; border-collapse:collapse; }
+      th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+      th { background:#f7fafc; }
+      @media (max-width:860px) { .grid { grid-template-columns:1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="top">
+        <a class="btn primary" href="./index.html">Home</a>
+        <a class="btn" href="./readme-en.html">Guide (EN)</a>
+        <a class="btn" href="./readme-ja.html">Guide (JA)</a>
+        <a class="btn" href="https://github.com/tiand23/AIKnowledgeBaseNew" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+
+      <h1>Architecture Overview</h1>
+      <p>Detailed design view for upload, processing, retrieval, ACL enforcement, and answer generation.</p>
+
+      <section class="section">
+        <h2>1. Design Goals</h2>
+        <ul>
+          <li>End-to-end flow from upload to grounded answer</li>
+          <li>Permission boundaries enforced in retrieval path</li>
+          <li>Image/diagram-aware parsing with selective VLM routing</li>
+          <li>Evaluation data persistence for continuous tuning</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>2. Component Diagram</h2>
+        <div class="diagram">
+          <svg width="1030" height="360" viewBox="0 0 1030 360">
+            <defs><marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#557289"></path></marker></defs>
+            <rect x="30" y="30" width="160" height="52" rx="8" fill="#ecfbfb" stroke="#0d7872"></rect><text x="110" y="62" text-anchor="middle">Frontend</text>
+            <rect x="240" y="30" width="180" height="52" rx="8" fill="#eef5ff" stroke="#6280a5"></rect><text x="330" y="62" text-anchor="middle">FastAPI API</text>
+            <rect x="470" y="30" width="180" height="52" rx="8" fill="#eef5ff" stroke="#6280a5"></rect><text x="560" y="62" text-anchor="middle">Search + ACL</text>
+            <rect x="700" y="30" width="220" height="52" rx="8" fill="#eef5ff" stroke="#6280a5"></rect><text x="810" y="62" text-anchor="middle">Chat + Grounded Answer</text>
+            <rect x="330" y="130" width="220" height="58" rx="8" fill="#edf8f3" stroke="#3f8b67"></rect><text x="440" y="164" text-anchor="middle">Document Processor</text>
+            <rect x="600" y="130" width="140" height="50" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="670" y="161" text-anchor="middle">Kafka</text>
+            <rect x="30" y="250" width="150" height="44" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="105" y="278" text-anchor="middle" font-size="14">PostgreSQL</text>
+            <rect x="210" y="250" width="130" height="44" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="275" y="278" text-anchor="middle" font-size="14">Redis</text>
+            <rect x="370" y="250" width="130" height="44" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="435" y="278" text-anchor="middle" font-size="14">MinIO</text>
+            <rect x="530" y="250" width="170" height="44" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="615" y="278" text-anchor="middle" font-size="14">Elasticsearch</text>
+            <rect x="730" y="250" width="170" height="44" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="815" y="278" text-anchor="middle" font-size="14">OpenAI APIs</text>
+            <line x1="190" y1="56" x2="240" y2="56" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="420" y1="56" x2="470" y2="56" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="650" y1="56" x2="700" y2="56" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="330" y1="82" x2="440" y2="130" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="330" y1="82" x2="670" y2="130" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="670" y1="180" x2="540" y2="188" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="330" y1="82" x2="105" y2="250" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="330" y1="82" x2="275" y2="250" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="440" y1="188" x2="435" y2="250" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="440" y1="188" x2="615" y2="250" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+            <line x1="810" y1="82" x2="815" y2="250" stroke="#557289" stroke-width="2" marker-end="url(#a)"></line>
+          </svg>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>3. Data Responsibilities</h2>
+        <table>
+          <thead><tr><th>Store</th><th>Main role</th></tr></thead>
+          <tbody>
+            <tr><td>MinIO</td><td>Raw files, chunk temp data, snapshot/image artifacts</td></tr>
+            <tr><td>PostgreSQL</td><td>Status, metadata, structured blocks, usage/eval records</td></tr>
+            <tr><td>Elasticsearch</td><td>Hybrid retrieval index (text + dense vectors)</td></tr>
+            <tr><td>Redis</td><td>Chunk bitmap/progress, session/cache support</td></tr>
+            <tr><td>Kafka</td><td>Async parsing tasks and decoupled processing</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>4. Key Paths</h2>
+        <div class="grid">
+          <div class="card"><b>Upload Path</b><br>chunk upload -> merge -> task publish</div>
+          <div class="card"><b>Parse Path</b><br>parse/chunk/structure -> embeddings -> index</div>
+          <div class="card"><b>Query Path</b><br>intent/query understanding -> hybrid retrieval</div>
+          <div class="card"><b>Answer Path</b><br>ACL-filtered evidence -> grounded LLM response</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>5. Reliability and Governance</h2>
+        <ul>
+          <li>Kafka multi-consumer processing for throughput</li>
+          <li>Idempotency lock and done-marker to avoid duplicate indexing</li>
+          <li>DLQ routing for repeated parse failures</li>
+          <li>Access filtering applied before answer generation</li>
+          <li>Usage/evaluation logs persisted for quality tuning</li>
+        </ul>
+      </section>
+    </main>
+  </body>
+</html>

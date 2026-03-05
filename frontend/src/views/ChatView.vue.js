@@ -13,6 +13,16 @@ const inputText = ref("");
 const messages = ref([]);
 const messagesBox = ref(null);
 const pendingAssistantIndex = ref(null);
+const processingStatus = ref({ stage: "", message: "" });
+const criticReason = ref({ code: "", message: "" });
+const finishedStages = ref([]);
+const statusSteps = [
+    { key: "planner", label: "意図分析" },
+    { key: "retriever", label: "根拠検索" },
+    { key: "reasoner", label: "根拠整理" },
+    { key: "critic", label: "妥当性確認" },
+    { key: "answer", label: "回答生成" },
+];
 const sourceDialogVisible = ref(false);
 const sourceLoading = ref(false);
 const sourceDialogTitle = ref("");
@@ -245,6 +255,9 @@ function connect() {
         connecting.value = false;
         connected.value = false;
         wsRef.value = null;
+        processingStatus.value = { stage: "", message: "" };
+        criticReason.value = { code: "", message: "" };
+        finishedStages.value = [];
         if (event.code === 1008) {
             ElMessage.warning("セッションの有効期限が切れました。再ログインしてください。");
         }
@@ -252,6 +265,9 @@ function connect() {
     ws.onerror = () => {
         connecting.value = false;
         connected.value = false;
+        processingStatus.value = { stage: "", message: "" };
+        criticReason.value = { code: "", message: "" };
+        finishedStages.value = [];
         ElMessage.error("WebSocket 接続エラー");
     };
     ws.onmessage = async (event) => {
@@ -267,7 +283,27 @@ function connect() {
                 ElMessage.success("WebSocket 接続完了");
                 return;
             }
+            if (data.type === "status") {
+                const stage = String(data.stage || "");
+                const text = String(data.message || "");
+                if (processingStatus.value.stage && processingStatus.value.stage !== stage) {
+                    if (!finishedStages.value.includes(processingStatus.value.stage)) {
+                        finishedStages.value = [...finishedStages.value, processingStatus.value.stage];
+                    }
+                }
+                processingStatus.value = { stage, message: text };
+                if (typeof data.reason_code === "string" || typeof data.reason_message === "string") {
+                    criticReason.value = {
+                        code: String(data.reason_code || ""),
+                        message: String(data.reason_message || ""),
+                    };
+                }
+                return;
+            }
             if (data.error) {
+                processingStatus.value = { stage: "", message: "" };
+                criticReason.value = { code: "", message: "" };
+                finishedStages.value = [];
                 ElMessage.error(data.error);
                 return;
             }
@@ -282,6 +318,9 @@ function connect() {
                 await scrollBottom();
             }
             if (data.type === "completion") {
+                processingStatus.value = { stage: "", message: "" };
+                criticReason.value = { code: "", message: "" };
+                finishedStages.value = [];
                 pendingAssistantIndex.value = null;
             }
         }
@@ -297,6 +336,9 @@ function disconnect() {
     }
     connecting.value = false;
     connected.value = false;
+    processingStatus.value = { stage: "", message: "" };
+    criticReason.value = { code: "", message: "" };
+    finishedStages.value = [];
 }
 function sendMessage() {
     const text = inputText.value.trim();
@@ -313,6 +355,9 @@ function sendMessage() {
         return;
     }
     messages.value.push({ role: "user", content: text });
+    processingStatus.value = { stage: "planner", message: "質問の意図を分析しています..." };
+    criticReason.value = { code: "", message: "" };
+    finishedStages.value = [];
     wsRef.value.send(text);
     inputText.value = "";
     pendingAssistantIndex.value = null;
@@ -344,6 +389,8 @@ let __VLS_directives;
 /** @type {__VLS_StyleScopedClasses['msg-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['user']} */ ;
 /** @type {__VLS_StyleScopedClasses['bubble']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-step']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-step']} */ ;
 // CSS variable injection 
 // CSS variable injection end 
 /** @type {[typeof AppLayout, typeof AppLayout, ]} */ ;
@@ -574,6 +621,39 @@ for (const [msg, idx] of __VLS_getVForSourceType((__VLS_ctx.messages))) {
             (refItem.location);
             var __VLS_51;
         }
+    }
+}
+if (__VLS_ctx.processingStatus.message) {
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "status-panel" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "status-title" },
+    });
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "status-message" },
+    });
+    (__VLS_ctx.processingStatus.message);
+    if (__VLS_ctx.criticReason.message) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+            ...{ class: "status-reason" },
+        });
+        (__VLS_ctx.criticReason.code);
+        (__VLS_ctx.criticReason.message);
+    }
+    __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
+        ...{ class: "status-steps" },
+    });
+    for (const [step] of __VLS_getVForSourceType((__VLS_ctx.statusSteps))) {
+        __VLS_asFunctionalElement(__VLS_intrinsicElements.span, __VLS_intrinsicElements.span)({
+            key: (step.key),
+            ...{ class: "status-step" },
+            ...{ class: ({
+                    active: __VLS_ctx.processingStatus.stage === step.key,
+                    done: __VLS_ctx.finishedStages.includes(step.key),
+                }) },
+        });
+        (step.label);
     }
 }
 __VLS_asFunctionalElement(__VLS_intrinsicElements.div, __VLS_intrinsicElements.div)({
@@ -1307,6 +1387,12 @@ var __VLS_2;
 /** @type {__VLS_StyleScopedClasses['source-links']} */ ;
 /** @type {__VLS_StyleScopedClasses['source-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['source-actions']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-panel']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-title']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-message']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-reason']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-steps']} */ ;
+/** @type {__VLS_StyleScopedClasses['status-step']} */ ;
 /** @type {__VLS_StyleScopedClasses['input-row']} */ ;
 /** @type {__VLS_StyleScopedClasses['source-title']} */ ;
 /** @type {__VLS_StyleScopedClasses['preview-row']} */ ;
@@ -1339,6 +1425,10 @@ const __VLS_self = (await import('vue')).defineComponent({
             inputText: inputText,
             messages: messages,
             messagesBox: messagesBox,
+            processingStatus: processingStatus,
+            criticReason: criticReason,
+            finishedStages: finishedStages,
+            statusSteps: statusSteps,
             sourceDialogVisible: sourceDialogVisible,
             sourceLoading: sourceLoading,
             sourceDialogTitle: sourceDialogTitle,

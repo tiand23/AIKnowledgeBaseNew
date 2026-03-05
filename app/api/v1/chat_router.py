@@ -288,9 +288,13 @@ async def websocket_chat(websocket: WebSocket):
                 
                 try:
                     async for db in db_client.get_session():
+                        async def _status_sender(payload: dict):
+                            await websocket_manager.send_to_connection(connection_id, payload)
+
                         async for chunk in chat_service.process_message(
                             db, user, user_message,
-                            conversation_id=conversation_id  # Use the conversation bound to this connection
+                            conversation_id=conversation_id,  # Use the conversation bound to this connection
+                            status_callback=_status_sender,
                         ):
                             try:
                                 token_exists = await redis_client.exists(f"chat:stop_token:{stop_token}")

@@ -112,7 +112,10 @@ sequenceDiagram
     participant UI as Web UI
     participant WS as WebSocket /chat
     participant Chat as Chat Service
+    participant Planner as Planner
     participant Search as Search Service
+    participant Reasoner as Reasoner
+    participant Critic as Critic
     participant ACL as Permission Service
     participant ES as Elasticsearch
     participant OpenAI as OpenAI Chat
@@ -120,17 +123,78 @@ sequenceDiagram
 
     UI->>WS: 質問送信
     WS->>Chat: message
-    Chat->>Chat: intent routing / query understanding
-    Chat->>Search: hybrid_search(query, user_ctx)
+    Chat-->>UI: status(planner)
+    Chat->>Planner: intent routing / query understanding
+    Planner-->>Chat: retrieval plan(top_k, relation)
+    Chat-->>UI: status(retriever)
+    Chat->>Search: retrieval(plan, query, user_ctx)
     Search->>ACL: build permission filter
     Search->>ES: vector + text retrieval
     ES-->>Search: top-k evidence
     Search-->>Chat: ranked chunks + sources
-    Chat->>OpenAI: prompt + evidence context
-    OpenAI-->>Chat: answer
+    Chat-->>UI: status(reasoner)
+    Chat->>Reasoner: evidence summarization
+    Reasoner-->>Chat: reasoning notes
+    Chat-->>UI: status(critic)
+    Chat->>Critic: evidence check
+    Critic-->>Chat: PASS / reason_code
+    alt PASS
+        Chat-->>UI: status(answer)
+        Chat->>OpenAI: prompt + evidence context
+        OpenAI-->>Chat: answer
+    else FAIL
+        Chat-->>UI: no-evidence + reason_code
+    end
     Chat->>DB: usage/conversation logging
     Chat-->>UI: 回答 + 根拠リンク/画像
 ```
+
+### 6.3 LangGraph問答オーケストレーション（新規）
+本プロジェクトの通常Q&Aパスは、LangGraphで次の5段を実行します。
+
+```text
+Planner -> Retriever -> Reasoner -> Critic -> Answer
+```
+
+```mermaid
+flowchart LR
+    U["ユーザー質問"] --> P["Planner\n意図判定・検索計画"]
+    P --> R["Retriever\nhybrid/relation/visual 検索"]
+    R --> RS["Reasoner\n根拠要点整理"]
+    RS --> C["Critic\n根拠妥当性チェック"]
+    C -->|PASS| A["Answer\nLLM回答生成 + 引用付与"]
+    C -->|EVIDENCE_EMPTY / ANCHOR_MISMATCH / EVIDENCE_WEAK| N["安全応答\nno-evidence"]
+    A --> O["回答返却"]
+    N --> O
+```
+
+- Planner:
+  質問意図を判定し、`top_k` や relation検索の有無を決定
+- Retriever:
+  既存の hybrid/relation/visual fallback ロジックで根拠を取得
+- Reasoner:
+  上位根拠を要約し、回答生成前の整理ノートを作成
+- Critic:
+  根拠妥当性を判定し、必要なら回答を保留
+- Answer:
+  通過時は回答生成へ、失敗時は安全な no-evidence 応答へ
+
+Critic の判定コード（現行）:
+- `EVIDENCE_EMPTY`: 根拠0件
+- `ANCHOR_MISMATCH`: 質問対象語と根拠が不一致
+- `EVIDENCE_WEAK`: 根拠はあるが信頼度が低い
+- `PASS`: 回答可能
+
+### 6.4 ユーザー可視ステータス（WebSocket）
+Q&A実行中は、フロント側に段階ステータスを日本語で表示します。
+
+- `質問の意図を分析しています...`
+- `根拠を検索しています...`
+- `根拠を整理しています...`
+- `回答の妥当性を確認しています...`
+- `回答を生成しています...`
+
+Criticで保留になった場合は、`reason_code` と理由文を表示します（例: `EVIDENCE_WEAK`）。
 
 ## 7. 代表API
 - `POST /api/v1/auth/register`

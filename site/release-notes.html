@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Release Notes - AI Knowledge Base Platform</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --ink: #1f2a37;
+        --muted: #5f6d7d;
+        --line: #d9e2ee;
+        --brand: #0d7872;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 10% 10%, rgba(13,120,114,0.08), transparent 28%), var(--bg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+      .top { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      .btn {
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-weight: 700;
+        color: var(--ink);
+        background: #fff;
+      }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      h1 { margin: 8px 0 8px; font-size: clamp(28px, 4vw, 44px); }
+      p, li { color: var(--muted); line-height: 1.65; }
+      .section { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+      .section h2 { margin: 0 0 10px; }
+      .tag {
+        display: inline-block;
+        background: #e9f8f6;
+        color: #0d7872;
+        border: 1px solid #98c9c4;
+        border-radius: 999px;
+        padding: 5px 10px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      footer { margin-top: 14px; color: #677383; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="top">
+        <a class="btn primary" href="./index.html">Back to Home</a>
+        <a class="btn" href="./security.html">Security</a>
+        <a class="btn" href="./contributing.html">Contributing</a>
+        <a class="btn" href="https://github.com/tiand23/AIKnowledgeBaseNew" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+
+      <h1>Release Notes</h1>
+      <span class="tag">v0.1.0-draft</span>
+      <p>Initial open-source draft focused on end-to-end knowledge base flow and architecture proof.</p>
+
+      <section class="section">
+        <h2>Highlights</h2>
+        <ul>
+          <li>End-to-end flow from upload to Q&amp;A</li>
+          <li>Hybrid retrieval (vector + text)</li>
+          <li>VLM-assisted structure extraction for image-heavy content</li>
+          <li>Access control based on user/org/public scope</li>
+          <li>Evaluation center for online/offline quality checks</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>Infrastructure</h2>
+        <ul>
+          <li>FastAPI + WebSocket</li>
+          <li>PostgreSQL / Redis / MinIO / Elasticsearch / Kafka</li>
+          <li>OpenAI integration for embedding/chat/vision</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>Stability Improvements</h2>
+        <ul>
+          <li>Kafka multi-consumer support for document processing</li>
+          <li>Idempotent processing lock and done-marker to avoid duplicate indexing</li>
+          <li>DLQ routing for repeated parse failures</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>Known Limitations</h2>
+        <ul>
+          <li>Single-node oriented deployment by default</li>
+          <li>Horizontal autoscaling and enterprise ops dashboards are not bundled</li>
+          <li>Some defaults are optimized for demo/staging, not production hardening</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>Next Milestones</h2>
+        <ul>
+          <li>Role hierarchy and admin console enhancements</li>
+          <li>Expanded evaluation dataset and dashboards</li>
+          <li>Production deployment blueprints and observability templates</li>
+        </ul>
+      </section>
+
+      <footer>Release notes page generated from repository notes and formatted for static hosting.</footer>
+    </main>
+  </body>
+</html>

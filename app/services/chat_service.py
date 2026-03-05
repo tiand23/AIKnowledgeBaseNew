@@ -5,7 +5,7 @@ import re
 import json
 import asyncio
 import time
-from typing import List, Dict, Optional, AsyncIterator, Any, Tuple
+from typing import List, Dict, Optional, AsyncIterator, Any, Tuple, Callable, Awaitable
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from app.models.user import User
@@ -28,6 +28,7 @@ from app.services.prompt_service import prompt_service
 from app.services.conversation_service import conversation_service
 from app.services.query_understanding_service import query_understanding_service
 from app.services.usage_event_service import usage_event_service
+from app.services.langgraph_qa_orchestrator import LangGraphQAOrchestrator, QAState
 from app.clients.openai_chat_client import openai_chat_client
 from app.utils.logger import get_logger
 
@@ -1542,12 +1543,136 @@ class ChatService:
         matched.sort(key=lambda x: x.get("score", 0.0), reverse=True)
         return self._build_schedule_answer_from_rows(message, matched[:10])
 
+    async def _retrieve_with_intent_plan(
+        self,
+        db: AsyncSession,
+        user: User,
+        *,
+        intent: str,
+        message: str,
+        search_query: str,
+        selected_profile: str,
+        strict_entity_filter: bool,
+        query_entities: List[str],
+        top_k: int,
+        include_relation: bool,
+    ) -> List[Dict[str, Any]]:
+        if intent == "layout_query":
+            search_results = await self._parallel_retrieve(
+                db=db,
+                user=user,
+                message=message,
+                search_query=search_query,
+                selected_profile=selected_profile,
+                entities=query_entities,
+                top_k=max(10, top_k),
+                include_relation=False,
+            )
+            search_results = self._apply_document_focus(
+                search_results,
+                query_text=message,
+                top_k=max(10, top_k),
+                strict_entity_filter=strict_entity_filter,
+                selected_profile=selected_profile,
+            )
+            search_results = await self._promote_layout_image_evidence(
+                db=db,
+                results=search_results,
+                top_k=max(10, top_k),
+            )
+        elif self._should_use_relation_search(intent, selected_profile, message):
+            search_results = await self._handle_flow_intent(
+                db=db,
+                user=user,
+                message=message,
+                search_query=search_query,
+                selected_profile=selected_profile,
+                strict_entity_filter=strict_entity_filter,
+                entities=query_entities,
+            )
+        else:
+            search_results = await self._parallel_retrieve(
+                db=db,
+                user=user,
+                message=message,
+                search_query=search_query,
+                selected_profile=selected_profile,
+                entities=query_entities,
+                top_k=max(8, top_k),
+                include_relation=include_relation,
+            )
+            search_results = self._apply_document_focus(
+                search_results,
+                query_text=message,
+                top_k=max(8, top_k),
+                strict_entity_filter=strict_entity_filter,
+                selected_profile=selected_profile,
+            )
+
+        if (not search_results) and self._is_visual_diagram_request(message):
+            visual_terms = " ".join(sorted(get_visual_diagram_request_keys()))
+            visual_query = f"{visual_terms} {search_query} [diagram_page] [diagram_summary]"
+            fallback_visual = await self.search_service.keyword_fallback_search(
+                db=db,
+                user=user,
+                query_text=visual_query,
+                kb_profile=None,
+                top_k=12,
+            )
+            search_results = self._apply_document_focus(
+                fallback_visual,
+                query_text=message,
+                top_k=10,
+                strict_entity_filter=False,
+                selected_profile=selected_profile,
+            )
+            search_results = await self._promote_layout_image_evidence(
+                db=db,
+                results=search_results,
+                top_k=10,
+            )
+
+        if strict_entity_filter and not search_results:
+            fallback_results = await self.search_service.keyword_fallback_search(
+                db=db,
+                user=user,
+                query_text=message,
+                kb_profile=None,
+                top_k=8,
+            )
+            search_results = self._apply_document_focus(
+                fallback_results,
+                query_text=message,
+                top_k=8,
+                strict_entity_filter=True,
+                selected_profile=selected_profile,
+            )
+
+        if strict_entity_filter and search_results:
+            file_ids = {str(x.get("file_md5") or "") for x in search_results if x.get("file_md5")}
+            if len(file_ids) == 1 and len(search_results) < 5:
+                file_md5 = next(iter(file_ids))
+                supplement = await self.search_service.get_file_chunks(
+                    db=db,
+                    file_md5=file_md5,
+                    limit=8,
+                )
+                merged = {f"{r.get('file_md5')}_{r.get('chunk_id')}": r for r in search_results}
+                for row in supplement:
+                    key = f"{row.get('file_md5')}_{row.get('chunk_id')}"
+                    if key not in merged:
+                        merged[key] = row
+                search_results = list(merged.values())[:8]
+
+        return search_results
+
     async def process_message(
         self,
         db: AsyncSession,
         user: User,
         message: str,
-        conversation_id: Optional[str] = None
+        conversation_id: Optional[str] = None,
+        status_callback: Optional[Callable[[Dict[str, Any]], Awaitable[None]]] = None,
     ) -> AsyncIterator[str]:
         """
         处理用户消息，返回流式响应
@@ -1567,7 +1692,22 @@ class ChatService:
         search_results: List[Dict] = []
         sources: List[Dict] = []
         assistant_content = ""
+        async def emit_status(stage: str, text: str, **extra: Any) -> None:
+            if not status_callback:
+                return
+            try:
+                payload = {
+                    "type": "status",
+                    "stage": stage,
+                    "message": text,
+                    "timestamp": int(time.time() * 1000),
+                }
+                payload.update(extra)
+                await status_callback(payload)
+            except Exception:
+                pass
         try:
+            await emit_status("planner", "質問の意図を分析しています...")
             if not conversation_id:
                 conversation_id = await self.conversation_service.get_or_create_conversation(user.id)
             
@@ -1644,8 +1784,10 @@ class ChatService:
                 search_query[:80],
             )
             search_results: List[Dict] = []
+            await emit_status("retriever", "根拠を検索しています...")
 
             deterministic_answer: Optional[str] = None
+            graph_state: Optional[QAState] = None
             intent_handlers = {
                 "timeline_query": self._handle_timeline_intent,
                 "compare_query": self._handle_compare_intent,
@@ -1694,6 +1836,7 @@ class ChatService:
                     )
 
                 if deterministic_answer:
+                    await emit_status("reasoner", "根拠を整理しています...")
                     _ctx, det_sources = self._format_search_results(search_results or [])
                     sources = det_sources
                     deterministic_answer = self._append_audit_citations(
@@ -1722,56 +1865,52 @@ class ChatService:
                     )
                     yield deterministic_answer
                     return
-            elif intent == "layout_query":
-                search_results = await self._parallel_retrieve(
-                    db=db,
-                    user=user,
-                    message=message,
-                    search_query=search_query,
-                    selected_profile=selected_profile,
-                    entities=query_entities,
-                    top_k=10,
-                    include_relation=False,
-                )
-                search_results = self._apply_document_focus(
-                    search_results,
-                    query_text=message,
-                    top_k=10,
-                    strict_entity_filter=strict_entity_filter,
-                    selected_profile=selected_profile,
-                )
-                search_results = await self._promote_layout_image_evidence(
-                    db=db,
-                    results=search_results,
-                    top_k=10,
-                )
-            elif self._should_use_relation_search(intent, selected_profile, message):
-                search_results = await self._handle_flow_intent(
-                    db=db,
-                    user=user,
-                    message=message,
-                    search_query=search_query,
-                    selected_profile=selected_profile,
-                    strict_entity_filter=strict_entity_filter,
-                    entities=query_entities,
-                )
             else:
-                search_results = await self._parallel_retrieve(
-                    db=db,
-                    user=user,
-                    message=message,
-                    search_query=search_query,
-                    selected_profile=selected_profile,
-                    entities=query_entities,
-                    top_k=8,
-                    include_relation=True,
+                async def _graph_retriever(state: QAState) -> List[Dict[str, Any]]:
+                    return await self._retrieve_with_intent_plan(
+                        db=db,
+                        user=user,
+                        intent=str(state.get("intent") or intent),
+                        message=message,
+                        search_query=str(state.get("search_query") or search_query),
+                        selected_profile=selected_profile,
+                        strict_entity_filter=bool(state.get("strict_entity_filter", strict_entity_filter)),
+                        query_entities=list(state.get("query_entities") or query_entities),
+                        top_k=int(state.get("top_k") or 8),
+                        include_relation=bool(state.get("include_relation", True)),
+                    )
+
+                orchestrator = LangGraphQAOrchestrator(
+                    retriever_fn=_graph_retriever,
+                    formatter_fn=self._format_search_results,
+                    grounding_fn=self._has_anchor_grounding,
+                    no_evidence_fn=self._safe_no_evidence_answer,
                 )
-                search_results = self._apply_document_focus(
-                    search_results,
-                    query_text=message,
-                    top_k=8,
-                    strict_entity_filter=strict_entity_filter,
-                    selected_profile=selected_profile,
+                graph_state = await orchestrator.run(
+                    QAState(
+                        message=message,
+                        selected_profile=selected_profile,
+                        intent=intent,
+                        search_query=search_query,
+                        query_entities=query_entities,
+                        must_terms=must_terms,
+                        strict_entity_filter=strict_entity_filter,
+                        top_k=10 if intent == "layout_query" else 8,
+                        include_relation=(intent != "layout_query"),
+                    )
+                )
+                search_results = list(graph_state.get("search_results") or [])
+                await emit_status("reasoner", "関連する根拠を整理しています...")
+                logger.info(
+                    "[qa_orchestration] mode=%s total_ms=%s node_ms=%s intent=%s hits=%s critic_passed=%s no_evidence=%s reason=%s",
+                    graph_state.get("orchestration_mode"),
+                    graph_state.get("orchestration_total_ms"),
+                    graph_state.get("node_metrics_ms", {}),
+                    intent,
+                    len(search_results),
+                    graph_state.get("critic_passed"),
+                    graph_state.get("no_evidence"),
+                    graph_state.get("critic_reason_code"),
                 )
 
             if (
@@ -1823,63 +1962,38 @@ class ChatService:
                     return
 
             logger.info(f"检索完成，找到 {len(search_results)} 个相关文档")
+            await emit_status("critic", "回答の妥当性を確認しています...")
 
-            if (not search_results) and self._is_visual_diagram_request(message):
-                visual_terms = " ".join(sorted(get_visual_diagram_request_keys()))
-                visual_query = f"{visual_terms} {search_query} [diagram_page] [diagram_summary]"
-                fallback_visual = await self.search_service.keyword_fallback_search(
+            if graph_state and graph_state.get("no_evidence"):
+                no_evidence_answer = str(graph_state.get("answer_text") or self._safe_no_evidence_answer())
+                reason_code = str(graph_state.get("critic_reason_code") or "NO_EVIDENCE")
+                reason_message = str(graph_state.get("critic_reason_message") or "根拠不足")
+                await emit_status("critic", f"回答保留: {reason_message}", reason_code=reason_code, reason_message=reason_message)
+                await self.conversation_service.save_message(
+                    conversation_id, "user", message, db=db
+                )
+                await self.conversation_service.save_message(
+                    conversation_id, "assistant", no_evidence_answer, db=db
+                )
+                assistant_content = no_evidence_answer
+                await self._record_usage_event(
                     db=db,
                     user=user,
-                    query_text=visual_query,
-                    kb_profile=None,
-                    top_k=12,
-                )
-                search_results = self._apply_document_focus(
-                    fallback_visual,
-                    query_text=message,
-                    top_k=10,
-                    strict_entity_filter=False,
+                    conversation_id=conversation_id,
+                    message=message,
+                    answer_text=assistant_content,
+                    intent=intent,
                     selected_profile=selected_profile,
+                    search_results=search_results,
+                    sources=sources,
+                    status="no_evidence",
+                    started_at=started_at,
+                    error_type=reason_code,
+                    error_message=reason_message,
                 )
-                search_results = await self._promote_layout_image_evidence(
-                    db=db,
-                    results=search_results,
-                    top_k=10,
-                )
-
-            if strict_entity_filter and not search_results:
-                fallback_results = await self.search_service.keyword_fallback_search(
-                    db=db,
-                    user=user,
-                    query_text=message,
-                    kb_profile=None,
-                    top_k=8,
-                )
-                search_results = self._apply_document_focus(
-                    fallback_results,
-                    query_text=message,
-                    top_k=8,
-                    strict_entity_filter=True,
-                    selected_profile=selected_profile,
-                )
-
-            if strict_entity_filter and search_results:
-                file_ids = {str(x.get("file_md5") or "") for x in search_results if x.get("file_md5")}
-                if len(file_ids) == 1 and len(search_results) < 5:
-                    file_md5 = next(iter(file_ids))
-                    supplement = await self.search_service.get_file_chunks(
-                        db=db,
-                        file_md5=file_md5,
-                        limit=8,
-                    )
-                    merged = {f"{r.get('file_md5')}_{r.get('chunk_id')}": r for r in search_results}
-                    for row in supplement:
-                        key = f"{row.get('file_md5')}_{row.get('chunk_id')}"
-                        if key not in merged:
-                            merged[key] = row
-                    search_results = list(merged.values())[:8]
-
-            if (not self._is_relation_presentation_query(message)) and (
+                yield no_evidence_answer
+                return
+            if (not graph_state) and (not self._is_relation_presentation_query(message)) and (
                 not self._has_anchor_grounding(message, search_results, selected_profile=selected_profile)
             ):
                 no_evidence_answer = self._safe_no_evidence_answer()
@@ -1931,7 +2045,14 @@ class ChatService:
                 yield no_evidence_answer
                 return
             
-            context, sources = self._format_search_results(search_results)
+            await emit_status("answer", "回答を生成しています...")
+            if graph_state:
+                context = str(graph_state.get("context") or "")
+                sources = list(graph_state.get("sources") or [])
+                if (not context) or (not sources):
+                    context, sources = self._format_search_results(search_results)
+            else:
+                context, sources = self._format_search_results(search_results)
             
             history = await self.conversation_service.get_conversation_history(conversation_id, db=db)
             

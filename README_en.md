@@ -112,7 +112,10 @@ sequenceDiagram
     participant UI as Web UI
     participant WS as WebSocket /chat
     participant Chat as Chat Service
+    participant Planner as Planner
     participant Search as Search Service
+    participant Reasoner as Reasoner
+    participant Critic as Critic
     participant ACL as Permission Service
     participant ES as Elasticsearch
     participant OpenAI as OpenAI Chat
@@ -120,17 +123,78 @@ sequenceDiagram
 
     UI->>WS: question
     WS->>Chat: message
-    Chat->>Chat: intent routing / query understanding
-    Chat->>Search: hybrid_search(query, user_ctx)
+    Chat-->>UI: status(planner)
+    Chat->>Planner: intent routing / query understanding
+    Planner-->>Chat: retrieval plan(top_k, relation)
+    Chat-->>UI: status(retriever)
+    Chat->>Search: retrieval(plan, query, user_ctx)
     Search->>ACL: build permission filter
     Search->>ES: vector + text retrieval
     ES-->>Search: top-k evidence
     Search-->>Chat: ranked chunks + sources
-    Chat->>OpenAI: prompt + evidence context
-    OpenAI-->>Chat: answer
+    Chat-->>UI: status(reasoner)
+    Chat->>Reasoner: evidence summarization
+    Reasoner-->>Chat: reasoning notes
+    Chat-->>UI: status(critic)
+    Chat->>Critic: evidence check
+    Critic-->>Chat: PASS / reason_code
+    alt PASS
+        Chat-->>UI: status(answer)
+        Chat->>OpenAI: prompt + evidence context
+        OpenAI-->>Chat: answer
+    else FAIL
+        Chat-->>UI: no-evidence + reason_code
+    end
     Chat->>DB: usage/conversation logging
     Chat-->>UI: answer + evidence links/images
 ```
+
+### 6.3 LangGraph QA Orchestration (New)
+The default Q&A path is orchestrated with LangGraph using this pipeline:
+
+```text
+Planner -> Retriever -> Reasoner -> Critic -> Answer
+```
+
+```mermaid
+flowchart LR
+    U["User Question"] --> P["Planner\nIntent + Retrieval Plan"]
+    P --> R["Retriever\nhybrid/relation/visual retrieval"]
+    R --> RS["Reasoner\nEvidence summarization"]
+    RS --> C["Critic\nEvidence quality check"]
+    C -->|PASS| A["Answer\nLLM generation + citations"]
+    C -->|EVIDENCE_EMPTY / ANCHOR_MISMATCH / EVIDENCE_WEAK| N["Safe Response\nno-evidence"]
+    A --> O["Response to User"]
+    N --> O
+```
+
+- Planner:
+  Detects intent and decides retrieval plan (`top_k`, relation on/off).
+- Retriever:
+  Executes existing hybrid/relation/visual-fallback retrieval logic.
+- Reasoner:
+  Summarizes top evidence before final answer generation.
+- Critic:
+  Validates evidence quality and can block unsafe/weak answers.
+- Answer:
+  Generates final answer when passed; otherwise returns safe no-evidence response.
+
+Current Critic reason codes:
+- `EVIDENCE_EMPTY`: no evidence found
+- `ANCHOR_MISMATCH`: query anchors do not match retrieved evidence
+- `EVIDENCE_WEAK`: evidence exists but confidence is too low
+- `PASS`: answer can proceed
+
+### 6.4 User-visible Stage Status (WebSocket)
+During Q&A execution, the frontend shows Japanese stage messages:
+
+- `質問の意図を分析しています...`
+- `根拠を検索しています...`
+- `根拠を整理しています...`
+- `回答の妥当性を確認しています...`
+- `回答を生成しています...`
+
+If Critic blocks the answer, the UI also shows `reason_code` and reason text.
 
 ## 7. Key APIs
 - `POST /api/v1/auth/register`

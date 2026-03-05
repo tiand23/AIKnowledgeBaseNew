@@ -41,6 +41,26 @@
             </div>
           </div>
         </div>
+        <div v-if="processingStatus.message" class="status-panel">
+          <div class="status-title">処理ステータス</div>
+          <div class="status-message">{{ processingStatus.message }}</div>
+          <div v-if="criticReason.message" class="status-reason">
+            判定: {{ criticReason.code }} - {{ criticReason.message }}
+          </div>
+          <div class="status-steps">
+            <span
+              v-for="step in statusSteps"
+              :key="step.key"
+              class="status-step"
+              :class="{
+                active: processingStatus.stage === step.key,
+                done: finishedStages.includes(step.key),
+              }"
+            >
+              {{ step.label }}
+            </span>
+          </div>
+        </div>
 
         <div class="input-row">
           <el-input
@@ -217,6 +237,16 @@ const inputText = ref("");
 const messages = ref<ChatMessage[]>([]);
 const messagesBox = ref<HTMLElement | null>(null);
 const pendingAssistantIndex = ref<number | null>(null);
+const processingStatus = ref<{ stage: string; message: string }>({ stage: "", message: "" });
+const criticReason = ref<{ code: string; message: string }>({ code: "", message: "" });
+const finishedStages = ref<string[]>([]);
+const statusSteps = [
+  { key: "planner", label: "意図分析" },
+  { key: "retriever", label: "根拠検索" },
+  { key: "reasoner", label: "根拠整理" },
+  { key: "critic", label: "妥当性確認" },
+  { key: "answer", label: "回答生成" },
+];
 const sourceDialogVisible = ref(false);
 const sourceLoading = ref(false);
 const sourceDialogTitle = ref("");
@@ -455,6 +485,9 @@ function connect() {
     connecting.value = false;
     connected.value = false;
     wsRef.value = null;
+    processingStatus.value = { stage: "", message: "" };
+    criticReason.value = { code: "", message: "" };
+    finishedStages.value = [];
     if (event.code === 1008) {
       ElMessage.warning("セッションの有効期限が切れました。再ログインしてください。");
     }
@@ -463,6 +496,9 @@ function connect() {
   ws.onerror = () => {
     connecting.value = false;
     connected.value = false;
+    processingStatus.value = { stage: "", message: "" };
+    criticReason.value = { code: "", message: "" };
+    finishedStages.value = [];
     ElMessage.error("WebSocket 接続エラー");
   };
 
@@ -479,7 +515,27 @@ function connect() {
         ElMessage.success("WebSocket 接続完了");
         return;
       }
+      if (data.type === "status") {
+        const stage = String(data.stage || "");
+        const text = String(data.message || "");
+        if (processingStatus.value.stage && processingStatus.value.stage !== stage) {
+          if (!finishedStages.value.includes(processingStatus.value.stage)) {
+            finishedStages.value = [...finishedStages.value, processingStatus.value.stage];
+          }
+        }
+        processingStatus.value = { stage, message: text };
+        if (typeof data.reason_code === "string" || typeof data.reason_message === "string") {
+          criticReason.value = {
+            code: String(data.reason_code || ""),
+            message: String(data.reason_message || ""),
+          };
+        }
+        return;
+      }
       if (data.error) {
+        processingStatus.value = { stage: "", message: "" };
+        criticReason.value = { code: "", message: "" };
+        finishedStages.value = [];
         ElMessage.error(data.error);
         return;
       }
@@ -493,6 +549,9 @@ function connect() {
         await scrollBottom();
       }
       if (data.type === "completion") {
+        processingStatus.value = { stage: "", message: "" };
+        criticReason.value = { code: "", message: "" };
+        finishedStages.value = [];
         pendingAssistantIndex.value = null;
       }
     } catch {
@@ -508,6 +567,9 @@ function disconnect() {
   }
   connecting.value = false;
   connected.value = false;
+  processingStatus.value = { stage: "", message: "" };
+  criticReason.value = { code: "", message: "" };
+  finishedStages.value = [];
 }
 
 function sendMessage() {
@@ -525,6 +587,9 @@ function sendMessage() {
     return;
   }
   messages.value.push({ role: "user", content: text });
+  processingStatus.value = { stage: "planner", message: "質問の意図を分析しています..." };
+  criticReason.value = { code: "", message: "" };
+  finishedStages.value = [];
   wsRef.value.send(text);
   inputText.value = "";
   pendingAssistantIndex.value = null;
@@ -662,6 +727,63 @@ onMounted(() => {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 12px;
+}
+
+.status-panel {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f8fafc;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.status-title {
+  font-size: 12px;
+  color: #6b7280;
+  margin-bottom: 4px;
+}
+
+.status-message {
+  font-size: 14px;
+  color: #1f2937;
+  margin-bottom: 8px;
+}
+
+.status-reason {
+  font-size: 12px;
+  color: #7c2d12;
+  background: #ffedd5;
+  border: 1px solid #fdba74;
+  border-radius: 6px;
+  padding: 4px 8px;
+  margin-bottom: 8px;
+}
+
+.status-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.status-step {
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 12px;
+  color: #6b7280;
+  background: #ffffff;
+}
+
+.status-step.active {
+  border-color: #2563eb;
+  color: #1d4ed8;
+  background: #dbeafe;
+}
+
+.status-step.done {
+  border-color: #16a34a;
+  color: #15803d;
+  background: #dcfce7;
 }
 
 .structured-table-wrap {
