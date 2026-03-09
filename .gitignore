@@ -1,0 +1,28 @@
+.env
+.DS_Store
+logs/
+__pycache__/
+*.pyc
+.venv/
+
+# Python cache/build/test
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Node/Vite
+node_modules/
+frontend/node_modules/
+frontend/dist/
+*.tsbuildinfo
+
+# IDE/editor
+.idea/
+.vscode/

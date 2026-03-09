@@ -1,0 +1,63 @@
+# FastAPI
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets>=12.0  # WebSocket support
+python-multipart==0.0.6
+
+# Data validation
+pydantic==2.10.6
+pydantic-settings==2.1.0
+email-validator==2.1.0
+
+# Database
+sqlalchemy==2.0.23
+alembic==1.12.1
+aiosqlite==0.20.0
+aiomysql==0.2.0
+asyncpg==0.30.0
+PyMySQL==1.1.0
+
+# Redis
+redis[hiredis]==5.0.1
+
+# MinIO object storage
+minio==7.2.0
+
+# Elasticsearch
+elasticsearch==8.10.0
+
+# Kafka
+aiokafka==0.10.0
+
+# OpenAI & LangChain
+openai==1.54.0
+langchain==0.3.7
+langchain-openai==0.2.8
+langchain-core==0.3.17
+langgraph==0.2.56
+
+# Auth and security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+
+# Captcha (Pillow only)
+Pillow>=10.0.0
+
+# Email
+aiosmtplib==3.0.1
+
+# HTTP client
+httpx==0.25.2
+
+# Utilities
+python-dateutil==2.8.2
+
+# Document parsing
+tika>=2.6.0  # Apache Tika Python client for multiple formats (PDF, Word, Excel, PowerPoint, etc.)
+python-docx==1.1.2
+openpyxl==3.1.5
+pypdf==5.2.0
+pdfplumber==0.11.4
+PyMuPDF==1.24.14
+pytesseract==0.3.13
