@@ -1,0 +1,6 @@
+{"id":"design_flow_01","query":"画面遷移図に基づいて、画面間の関連を教えて", "top_k":10, "expected":{"file_name_any":["画面遷移図","負荷予測"],"text_contains_any":["画面","遷移","関連"]}}
+{"id":"design_arch_01","query":"システム構成図を見たい", "top_k":10, "expected":{"file_name_any":["システムイメージ","構成図"],"text_contains_any":["システム","構成"]}}
+{"id":"design_dep_01","query":"入力と出力の関係を説明して", "top_k":10, "expected":{"text_contains_any":["入力","出力","連携"]}}
+{"id":"ops_01","query":"障害時の対応手順は？", "top_k":10, "expected":{"text_contains_any":["手順","対応","障害"]}}
+{"id":"policy_01","query":"適用範囲と例外条件を教えて", "top_k":10, "expected":{"text_contains_any":["適用","例外","条件"]}}
+
