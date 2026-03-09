@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>README (EN) - AI Knowledge Base Platform</title>
+    <style>
+      :root { --bg:#f4f7fb; --panel:#fff; --ink:#1f2a37; --muted:#5f6d7d; --line:#d9e2ee; --brand:#0d7872; }
+      * { box-sizing:border-box; }
+      body { margin:0; font-family:"Avenir Next","Segoe UI",sans-serif; color:var(--ink); background:radial-gradient(circle at 8% 8%, rgba(13,120,114,.08), transparent 28%), var(--bg); }
+      .wrap { max-width:1080px; margin:0 auto; padding:24px 16px 48px; }
+      .top { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:12px; }
+      .btn { text-decoration:none; border:1px solid var(--line); border-radius:10px; padding:9px 12px; font-weight:700; color:var(--ink); background:#fff; }
+      .btn.primary { background:var(--brand); color:#fff; border-color:var(--brand); }
+      h1 { margin:8px 0; font-size:clamp(28px,4vw,44px); }
+      p, li { color:var(--muted); line-height:1.68; }
+      .section { margin-top:12px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+      .section h2 { margin:0 0 10px; font-size:24px; }
+      .section h3 { margin:10px 0 8px; font-size:20px; }
+      .grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; }
+      .card { border:1px solid #dce6f1; border-radius:10px; background:#fbfdff; padding:10px; }
+      .card b { color:var(--brand); }
+      table { width:100%; border-collapse:collapse; }
+      th, td { border:1px solid var(--line); padding:8px 10px; text-align:left; }
+      th { background:#f7fafc; }
+      pre { margin:0; background:#f6f9fd; border:1px solid #dce6f1; border-radius:10px; padding:12px; overflow:auto; }
+      code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+      .small { font-size:13px; }
+      footer { margin-top:14px; color:#677383; font-size:13px; }
+      @media (max-width:860px) { .grid { grid-template-columns:1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="top">
+        <a class="btn primary" href="./index.html">Home</a>
+        <a class="btn" href="./architecture.html">Architecture</a>
+        <a class="btn" href="./readme-ja.html">Guide (JA)</a>
+        <a class="btn" href="https://github.com/tiand23/AIKnowledgeBaseNew" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+
+      <h1>AI Knowledge Base Platform - README (EN)</h1>
+      <p>
+        OSS implementation of an enterprise-oriented knowledge base platform.
+        This page is a static-site friendly README view aligned with project documentation.
+      </p>
+
+      <section class="section">
+        <h2>1. What You Can Do</h2>
+        <ul>
+          <li>Chunk upload with asynchronous parsing pipeline</li>
+          <li>Structuring for image/diagram-heavy documents</li>
+          <li>Hybrid retrieval (vector + full-text) for Q&amp;A</li>
+          <li>Org-tag based access control (owner/public/org/default)</li>
+          <li>Evaluation data logging for iterative quality improvement</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>2. Typical Use Cases</h2>
+        <div class="grid">
+          <div class="card"><b>Cross-document search</b><br>Search across design docs, operation manuals, and flow diagrams.</div>
+          <div class="card"><b>Org-scoped sharing</b><br>Control visibility by owner/public/org boundaries.</div>
+          <div class="card"><b>Quality operations</b><br>Improve Recall/Precision/Faithfulness/Completeness over time.</div>
+          <div class="card"><b>Evidence-first answers</b><br>Return source links/images for verification.</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>3. Quick Start (Docker)</h2>
+        <ol>
+          <li>Create config file:</li>
+        </ol>
+        <pre><code>cp .env.example .env</code></pre>
+        <ol start="2">
+          <li>Edit <code>.env</code> (minimum: <code>OPENAI_API_KEY</code> and passwords)</li>
+          <li>Start services:</li>
+        </ol>
+        <pre><code>cd app
+./start_docker.sh pg up</code></pre>
+        <ol start="4">
+          <li>Health check:</li>
+        </ol>
+        <pre><code>docker ps --format "table {{.Names}}\t{{.Status}}"
+curl http://localhost:8000/health</code></pre>
+        <ol start="5">
+          <li>Stop services:</li>
+        </ol>
+        <pre><code>cd app
+./start_docker.sh pg down</code></pre>
+      </section>
+
+      <section class="section">
+        <h2>4. Minimal User Flow</h2>
+        <ol>
+          <li>Register account (org settings)</li>
+          <li>Upload document (scope + org tag)</li>
+          <li>Ask in Knowledge Q&amp;A</li>
+          <li>Validate answer with evidence links/images</li>
+        </ol>
+      </section>
+
+      <section class="section">
+        <h2>5. System Overview (Summary)</h2>
+        <p class="small">For diagrams and design details, see <a href="./architecture.html">Architecture</a>.</p>
+        <div class="grid">
+          <div class="card"><b>API Layer</b><br>FastAPI + WebSocket</div>
+          <div class="card"><b>Processing Layer</b><br>Kafka + Document Processor</div>
+          <div class="card"><b>Data Layer</b><br>PostgreSQL / Redis / MinIO / Elasticsearch</div>
+          <div class="card"><b>AI Layer</b><br>OpenAI Embedding / Chat / Vision</div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2>6. Main Flows</h2>
+        <h3>6.1 Upload -&gt; Parse -&gt; Index</h3>
+        <ul>
+          <li><code>/upload/chunk</code>: receive chunks and store temp objects</li>
+          <li><code>/upload/merge</code>: compose merged file and publish parse task</li>
+          <li>Processor executes parse/chunk/embedding/index pipeline</li>
+          <li>Persist metadata and mark file status DONE</li>
+        </ul>
+
+        <h3>6.2 Question -&gt; Retrieve -&gt; Answer</h3>
+        <ul>
+          <li>WebSocket chat receives user question</li>
+          <li>Intent routing and query understanding</li>
+          <li>Hybrid retrieval with ACL filtering</li>
+          <li>LLM generates grounded answer from evidence context</li>
+          <li>Usage/conversation events are logged</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>7. Key APIs</h2>
+        <table>
+          <thead><tr><th>Method</th><th>Path</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr><td>POST</td><td><code>/api/v1/auth/register</code></td><td>User registration</td></tr>
+            <tr><td>POST</td><td><code>/api/v1/auth/login</code></td><td>Login</td></tr>
+            <tr><td>POST</td><td><code>/api/v1/upload/chunk</code></td><td>Chunk upload</td></tr>
+            <tr><td>POST</td><td><code>/api/v1/upload/merge</code></td><td>Finalize upload</td></tr>
+            <tr><td>GET</td><td><code>/api/v1/search/hybrid</code></td><td>Hybrid search</td></tr>
+            <tr><td>WS</td><td><code>/api/v1/chat?token=...</code></td><td>Q&amp;A chat</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>8. Operational Notes</h2>
+        <ul>
+          <li>Replace all secrets in <code>.env</code> before production use</li>
+          <li>Default deployment is single-node oriented</li>
+          <li>Tune ES/Kafka/OpenAI parameters for real workload</li>
+          <li>Copy <code>.env.example</code> to <code>.env</code> before first run</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>9. Known Limitations (v0.1.0-draft)</h2>
+        <ul>
+          <li>Single-node deployment by default</li>
+          <li>No built-in horizontal autoscaling package</li>
+          <li>Some defaults are for demo/staging, not full production hardening</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>10. Additional Documents</h2>
+        <ul>
+          <li>Japanese guide: <a href="./readme-ja.html">readme-ja.html</a></li>
+          <li>Architecture notes: <a href="./architecture.html">architecture.html</a></li>
+          <li>Security policy: <a href="./security.html">security.html</a></li>
+          <li>Contributing guide: <a href="./contributing.html">contributing.html</a></li>
+          <li>Release notes: <a href="./release-notes.html">release-notes.html</a></li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>11. Security Reporting</h2>
+        <p>See <a href="./security.html">security.html</a> for vulnerability reporting and SLA policy.</p>
+      </section>
+
+      <section class="section">
+        <h2>12. Contributing</h2>
+        <p>See <a href="./contributing.html">contributing.html</a> for development setup and PR rules.</p>
+      </section>
+
+      <section class="section">
+        <h2>13. Release Notes</h2>
+        <p>See <a href="./release-notes.html">release-notes.html</a> for current milestone notes.</p>
+      </section>
+
+      <section class="section">
+        <h2>14. License</h2>
+        <p>See <a href="./license.html">license.html</a> (Apache-2.0 summary and source link).</p>
+      </section>
+
+      <footer>This page is maintained for static-site hosting and interview/demo usage.</footer>
+    </main>
+  </body>
+</html>

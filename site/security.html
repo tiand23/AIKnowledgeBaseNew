@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Security Policy - AI Knowledge Base Platform</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --ink: #1f2a37;
+        --muted: #5c6a79;
+        --line: #d9e2ee;
+        --brand: #0d7872;
+        --warn: #b45309;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 10% 10%, rgba(13,120,114,0.08), transparent 28%), var(--bg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+      .top { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      .btn {
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-weight: 700;
+        color: var(--ink);
+        background: #fff;
+      }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      h1 { margin: 8px 0 8px; font-size: clamp(28px, 4vw, 44px); }
+      p { color: var(--muted); line-height: 1.65; }
+      .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 14px 0; }
+      .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; }
+      .card b { color: var(--brand); }
+      .section { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+      .section h2 { margin: 0 0 10px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid var(--line); padding: 9px; text-align: left; }
+      th { background: #f7fafc; }
+      .warn { color: var(--warn); font-weight: 800; }
+      ul, ol { color: var(--muted); }
+      footer { margin-top: 14px; color: #677383; font-size: 13px; }
+      @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="top">
+        <a class="btn primary" href="./index.html">Back to Home</a>
+        <a class="btn" href="./contributing.html">Contributing</a>
+        <a class="btn" href="./release-notes.html">Release Notes</a>
+        <a class="btn" href="https://github.com/tiand23/AIKnowledgeBaseNew" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+
+      <h1>Security Policy</h1>
+      <p>
+        This page defines the vulnerability reporting process and response targets for
+        <b>AI Knowledge Base Platform</b>. For security incidents, use private channels only.
+      </p>
+
+      <div class="grid">
+        <div class="card"><b>Current Phase</b><br />Early OSS / Beta</div>
+        <div class="card"><b>Public Issue for Vulns</b><br /><span class="warn">Not allowed</span></div>
+        <div class="card"><b>Preferred Disclosure</b><br />Coordinated disclosure</div>
+      </div>
+
+      <section class="section">
+        <h2>Supported Versions</h2>
+        <table>
+          <thead>
+            <tr><th>Version</th><th>Supported</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>main (latest)</td><td>Yes</td></tr>
+            <tr><td>older tags/releases</td><td>No</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section class="section">
+        <h2>How to Report a Vulnerability</h2>
+        <p class="warn">Do not open a public GitHub issue for vulnerability reports.</p>
+        <p>Use one of the following private channels:</p>
+        <ul>
+          <li>Email: <code>security@example.com</code> (replace before wide production adoption)</li>
+          <li>Alternative contact: project maintainers</li>
+        </ul>
+        <p>Please include the following in your report:</p>
+        <ol>
+          <li>Affected component/path</li>
+          <li>Reproduction steps</li>
+          <li>Impact assessment</li>
+          <li>Suggested mitigation (optional)</li>
+        </ol>
+      </section>
+
+      <section class="section">
+        <h2>Response SLA (Target)</h2>
+        <ul>
+          <li>Initial acknowledgement: within 72 hours</li>
+          <li>Triage result: within 7 business days</li>
+          <li>Fix plan: announced after impact assessment</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>Disclosure Policy</h2>
+        <ul>
+          <li>Coordinated disclosure is preferred.</li>
+          <li>Public disclosure should happen after a fix or mitigation is available.</li>
+        </ul>
+      </section>
+
+      <footer>Security page generated from repository policy and formatted for static site hosting.</footer>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Knowledge Base Platform</title>
+    <meta name="description" content="Enterprise knowledge base platform with async parsing, hybrid retrieval, ACL filtering, and evaluation." />
+    <style>
+      :root {
+        --bg: #f3f7fb;
+        --panel: #ffffff;
+        --ink: #1f2a37;
+        --muted: #5f6c7c;
+        --line: #d8e2ee;
+        --brand: #0d7872;
+        --brand-soft: #e8f7f6;
+        --accent: #d97a31;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        font-family: "Avenir Next", "Hiragino Sans", "Noto Sans JP", sans-serif;
+        background:
+          radial-gradient(circle at 8% 8%, rgba(13,120,114,0.1), transparent 28%),
+          radial-gradient(circle at 88% 10%, rgba(217,122,49,0.08), transparent 20%),
+          var(--bg);
+      }
+      .container { max-width: 1160px; margin: 0 auto; padding: 24px 16px 56px; }
+      .topbar { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+      h1 { margin: 0; font-size: clamp(30px, 4.6vw, 56px); line-height: 1.06; }
+      .lang-group { display: inline-flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; }
+      .lang-btn { border: 0; background: #fff; padding: 10px 14px; cursor: pointer; font-weight: 700; }
+      .lang-btn.active { background: var(--brand); color: #fff; }
+      .hero, .section { margin-top: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px; }
+      .hero { background: linear-gradient(120deg, #ffffff 0%, #eef8f7 60%, #fff4eb 100%); }
+      .badge { display: inline-block; padding: 6px 11px; border-radius: 999px; border: 1px solid #95c7c3; background: var(--brand-soft); color: var(--brand); font-size: 12px; font-weight: 800; }
+      .hero p { margin: 11px 0 0; font-size: 18px; color: var(--muted); line-height: 1.68; }
+      .btn-row { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
+      .btn { text-decoration: none; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; font-weight: 700; }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      .btn.secondary { background: #fff; color: var(--ink); }
+      .section h2 { margin: 0 0 10px; font-size: 32px; }
+      .section p, .section li { color: var(--muted); line-height: 1.65; }
+      .kpi, .cards, .flow-notes { display: grid; gap: 10px; }
+      .kpi { grid-template-columns: repeat(4, 1fr); }
+      .cards { grid-template-columns: repeat(12, 1fr); }
+      .flow-notes { grid-template-columns: repeat(4, 1fr); }
+      .kpi > div, .flow-notes > div, .card { border: 1px solid #dce6f1; border-radius: 12px; background: #fbfdff; padding: 11px; }
+      .kpi b, .flow-notes b { color: var(--brand); }
+      .card { grid-column: span 6; }
+      .card h3 { margin: 0 0 7px; font-size: 20px; }
+      .diagram { border: 1px dashed #bed0e4; border-radius: 12px; background: #fbfdff; padding: 10px; overflow: auto; }
+      svg text { font-family: "Avenir Next", "Hiragino Sans", "Noto Sans JP", sans-serif; fill: #21313f; }
+      .quick li { margin-bottom: 7px; }
+      code { background: #f2f6fb; border: 1px solid #dce7f2; border-radius: 6px; padding: 1px 6px; }
+      footer { margin-top: 14px; color: #6b7788; font-size: 13px; }
+      @media (max-width: 980px) {
+        .kpi, .flow-notes { grid-template-columns: repeat(2, 1fr); }
+        .card { grid-column: span 12; }
+      }
+      @media (max-width: 560px) {
+        .topbar { flex-direction: column; align-items: flex-start; }
+        .kpi, .flow-notes { grid-template-columns: 1fr; }
+        .section h2 { font-size: 26px; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <header class="topbar">
+        <h1 data-i18n="title">AI Knowledge Base Platform</h1>
+        <div class="lang-group">
+          <button class="lang-btn active" data-lang="ja">日本語</button>
+          <button class="lang-btn" data-lang="en">EN</button>
+          <button class="lang-btn" data-lang="zh">中文</button>
+        </div>
+      </header>
+
+      <section class="hero">
+        <span class="badge" data-i18n="badge">Open-source knowledge base platform (beta)</span>
+        <p data-i18n="heroText"></p>
+        <div class="btn-row">
+          <a class="btn primary" href="https://github.com/tiand23/AIKnowledgeBaseNew" target="_blank" rel="noreferrer" data-i18n="btnGithub">GitHub Repository</a>
+          <a class="btn secondary" href="./readme-ja.html" target="_blank" rel="noreferrer" data-i18n="btnGuideJa">Guide (JA)</a>
+          <a class="btn secondary" href="./readme-en.html" target="_blank" rel="noreferrer" data-i18n="btnGuideEn">Guide (EN)</a>
+          <a class="btn secondary" href="./architecture.html" target="_blank" rel="noreferrer" data-i18n="btnArchitecture">Architecture</a>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="ovTitle">Product Overview</h2>
+        <p data-i18n="ovText"></p>
+        <div class="kpi">
+          <div><b data-i18n="k1t">Input</b><br /><span data-i18n="k1d"></span></div>
+          <div><b data-i18n="k2t">Processing</b><br /><span data-i18n="k2d"></span></div>
+          <div><b data-i18n="k3t">Retrieval</b><br /><span data-i18n="k3d"></span></div>
+          <div><b data-i18n="k4t">Governance</b><br /><span data-i18n="k4d"></span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="advTitle">Why this platform</h2>
+        <div class="cards">
+          <article class="card"><h3 data-i18n="a1t"></h3><p data-i18n="a1d"></p></article>
+          <article class="card"><h3 data-i18n="a2t"></h3><p data-i18n="a2d"></p></article>
+          <article class="card"><h3 data-i18n="a3t"></h3><p data-i18n="a3d"></p></article>
+          <article class="card"><h3 data-i18n="a4t"></h3><p data-i18n="a4d"></p></article>
+          <article class="card"><h3 data-i18n="a5t"></h3><p data-i18n="a5d"></p></article>
+          <article class="card"><h3 data-i18n="a6t"></h3><p data-i18n="a6d"></p></article>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="arTitle">Architecture Diagram</h2>
+        <p data-i18n="arText"></p>
+        <div class="diagram">
+          <svg width="1100" height="430" viewBox="0 0 1100 430" aria-label="Architecture diagram">
+            <defs>
+              <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#557289"></path></marker>
+            </defs>
+            <rect x="40" y="40" width="170" height="56" rx="8" fill="#ecfbfb" stroke="#0e7470"></rect><text x="125" y="74" text-anchor="middle" font-size="15">Frontend</text>
+            <rect x="270" y="40" width="190" height="56" rx="8" fill="#eef5ff" stroke="#6280a5"></rect><text x="365" y="74" text-anchor="middle" font-size="15">FastAPI API</text>
+            <rect x="520" y="40" width="190" height="56" rx="8" fill="#eef5ff" stroke="#6280a5"></rect><text x="615" y="74" text-anchor="middle" font-size="15">Search + ACL</text>
+            <rect x="770" y="40" width="220" height="56" rx="8" fill="#eef5ff" stroke="#6280a5"></rect><text x="880" y="74" text-anchor="middle" font-size="15">Chat + Grounded Answer</text>
+            <rect x="390" y="150" width="220" height="62" rx="8" fill="#edf8f3" stroke="#3f8b67"></rect><text x="500" y="187" text-anchor="middle" font-size="15">Document Processor</text>
+            <rect x="660" y="150" width="150" height="50" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="735" y="181" text-anchor="middle" font-size="14">Kafka</text>
+            <rect x="40" y="280" width="170" height="48" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="125" y="309" text-anchor="middle" font-size="14">PostgreSQL</text>
+            <rect x="240" y="280" width="140" height="48" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="310" y="309" text-anchor="middle" font-size="14">Redis</text>
+            <rect x="410" y="280" width="140" height="48" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="480" y="309" text-anchor="middle" font-size="14">MinIO</text>
+            <rect x="580" y="280" width="180" height="48" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="670" y="309" text-anchor="middle" font-size="14">Elasticsearch</text>
+            <rect x="790" y="280" width="180" height="48" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="880" y="309" text-anchor="middle" font-size="14">OpenAI APIs</text>
+            <line x1="210" y1="68" x2="270" y2="68" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="460" y1="68" x2="520" y2="68" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="710" y1="68" x2="770" y2="68" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="365" y1="96" x2="500" y2="150" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="365" y1="96" x2="735" y2="150" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="735" y1="200" x2="560" y2="212" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="365" y1="96" x2="125" y2="280" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="365" y1="96" x2="310" y2="280" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="500" y1="212" x2="480" y2="280" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="500" y1="212" x2="670" y2="280" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+            <line x1="880" y1="96" x2="880" y2="280" stroke="#557289" stroke-width="2" marker-end="url(#arrow)"></line>
+          </svg>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="flTitle">System Flow</h2>
+        <p data-i18n="flText"></p>
+        <div class="diagram">
+          <svg width="1100" height="320" viewBox="0 0 1100 320" aria-label="System flow diagram">
+            <defs>
+              <marker id="arrow2" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth"><path d="M0,0 L0,6 L9,3 z" fill="#57758d"></path></marker>
+            </defs>
+            <rect x="40" y="40" width="210" height="64" rx="8" fill="#edf8ff" stroke="#6280a5"></rect><text x="145" y="72" text-anchor="middle" font-size="14" data-txt="flowUpload">1) Upload</text>
+            <rect x="310" y="40" width="220" height="64" rx="8" fill="#ecfbf7" stroke="#3f8b67"></rect><text x="420" y="72" text-anchor="middle" font-size="14" data-txt="flowParse">2) Parse + Structure</text>
+            <rect x="590" y="40" width="220" height="64" rx="8" fill="#fff6ed" stroke="#ca7f45"></rect><text x="700" y="72" text-anchor="middle" font-size="14" data-txt="flowIndex">3) Store + Index</text>
+            <rect x="870" y="40" width="190" height="64" rx="8" fill="#edf8ff" stroke="#6280a5"></rect><text x="965" y="72" text-anchor="middle" font-size="14" data-txt="flowAsk">4) Ask + Answer</text>
+            <line x1="250" y1="72" x2="310" y2="72" stroke="#57758d" stroke-width="2" marker-end="url(#arrow2)"></line>
+            <line x1="530" y1="72" x2="590" y2="72" stroke="#57758d" stroke-width="2" marker-end="url(#arrow2)"></line>
+            <line x1="810" y1="72" x2="870" y2="72" stroke="#57758d" stroke-width="2" marker-end="url(#arrow2)"></line>
+            <rect x="220" y="210" width="660" height="72" rx="10" fill="#fbfdff" stroke="#c4d4e6"></rect>
+            <text x="550" y="238" text-anchor="middle" font-size="14" data-txt="flowEvalTitle">Continuous Evaluation Loop</text>
+            <text x="550" y="263" text-anchor="middle" font-size="13" fill="#5d6b7b" data-txt="flowEvalDesc">log usage events -> offline/online metrics -> tune retrieval and prompts</text>
+          </svg>
+        </div>
+        <div class="flow-notes">
+          <div><b data-i18n="fln1t">Step 1</b><br /><span data-i18n="flowUploadDesc"></span></div>
+          <div><b data-i18n="fln2t">Step 2</b><br /><span data-i18n="flowParseDesc"></span></div>
+          <div><b data-i18n="fln3t">Step 3</b><br /><span data-i18n="flowIndexDesc"></span></div>
+          <div><b data-i18n="fln4t">Step 4</b><br /><span data-i18n="flowAskDesc"></span></div>
+        </div>
+      </section>
+
+      <section class="section">
+        <h2 data-i18n="qsTitle">Quick Start</h2>
+        <p data-i18n="qsText"></p>
+        <ol class="quick">
+          <li><code>cp .env.example .env</code></li>
+          <li><code>cd app && ./start_docker.sh pg up</code></li>
+          <li data-i18n="qsStep3"></li>
+          <li><code>cd app && ./start_docker.sh pg down</code></li>
+        </ol>
+      </section>
+
+      <footer>
+        <span data-i18n="footer">More docs:</span>
+        <a href="./security.html" target="_blank" rel="noreferrer">Security</a> ·
+        <a href="./contributing.html" target="_blank" rel="noreferrer">Contributing</a> ·
+        <a href="./release-notes.html" target="_blank" rel="noreferrer">Release Notes</a> ·
+        <a href="./license.html" target="_blank" rel="noreferrer">License</a>
+      </footer>
+    </main>
+
+    <script>
+      const i18n = {
+        ja: {
+          title: "AI Knowledge Base Platform",
+          badge: "Open-source knowledge base platform (beta)",
+          heroText: "日本企業向けのナレッジ基盤。文書アップロード、解析・構造化、検索、根拠付き回答、権限制御、評価改善ループまでを一気通貫で提供します。",
+          btnGithub: "GitHub Repository",
+          btnGuideJa: "利用ガイド (JA)",
+          btnGuideEn: "User Guide (EN)",
+          btnArchitecture: "Architecture",
+          ovTitle: "プロダクト概要",
+          ovText: "設計書・運用手順書・画面遷移図などの散在ドキュメントを、検索可能で運用可能な知識資産へ変換します。",
+          k1t: "Input", k1d: "分割アップロードとマージ処理",
+          k2t: "Processing", k2d: "解析・分割・構造化・VLM補強",
+          k3t: "Retrieval", k3d: "Vector + Full-text の混合検索",
+          k4t: "Governance", k4d: "owner/public/org/default 権限制御",
+          advTitle: "この基盤の強み",
+          a1t: "エンドツーエンド設計", a1d: "アップロードから回答・評価までを1つの基盤で提供し、分断を解消します。",
+          a2t: "非同期パイプライン", a2d: "Kafkaにより重い解析を非同期化し、APIの応答性と安定性を確保します。",
+          a3t: "図表に強い解析", a3d: "テキストだけでなく図表・画像にも対応し、必要時のみVLMを利用します。",
+          a4t: "高精度な召回", a4d: "ハイブリッド検索で固有語クエリと意味検索の両方をカバーします。",
+          a5t: "企業向け権限制御", a5d: "組織タグ・公開範囲・所有者を検索段階で強制し、越権参照を防ぎます。",
+          a6t: "継続改善可能", a6d: "利用ログと評価指標を蓄積し、回答品質を運用で改善できます。",
+          arTitle: "アーキテクチャ図", arText: "主要コンポーネント間の責務と接続関係を示します。",
+          flTitle: "システムフロー", flText: "アップロードから回答生成までの基幹処理フローです。",
+          fln1t: "Step 1", fln2t: "Step 2", fln3t: "Step 3", fln4t: "Step 4",
+          flowUpload: "1) アップロード", flowParse: "2) 解析 + 構造化", flowIndex: "3) 入庫 + 索引", flowAsk: "4) 質問 + 回答",
+          flowUploadDesc: "分割アップロード -> マージ -> Kafka発行",
+          flowParseDesc: "テキスト/表/画像解析 + VLMルーティング",
+          flowIndexDesc: "PostgreSQLメタ保存 + ES索引",
+          flowAskDesc: "混合検索 + ACL + LLM回答",
+          flowEvalTitle: "継続評価ループ", flowEvalDesc: "利用ログ収集 -> 指標評価 -> 検索とプロンプト改善",
+          qsTitle: "クイックスタート", qsText: "最小手順で主フローを確認できます。",
+          qsStep3: "UIで「登録 -> アップロード -> 質問」を実施",
+          footer: "More docs:"
+        },
+        en: {
+          title: "AI Knowledge Base Platform",
+          badge: "Open-source knowledge base platform (beta)",
+          heroText: "A knowledge platform for enterprise use cases: upload, parse, structure, retrieve, and answer with evidence, access control, and continuous evaluation.",
+          btnGithub: "GitHub Repository",
+          btnGuideJa: "Guide (JA)",
+          btnGuideEn: "User Guide (EN)",
+          btnArchitecture: "Architecture",
+          ovTitle: "Product Overview",
+          ovText: "Transforms distributed enterprise documents into searchable and governable knowledge assets.",
+          k1t: "Input", k1d: "Chunk upload and merge pipeline",
+          k2t: "Processing", k2d: "Parse, chunk, structure, VLM enhancement",
+          k3t: "Retrieval", k3d: "Hybrid retrieval: vector + full text",
+          k4t: "Governance", k4d: "owner/public/org/default access control",
+          advTitle: "Why this platform",
+          a1t: "End-to-end architecture", a1d: "Covers upload to answer and evaluation in one coherent platform.",
+          a2t: "Asynchronous processing", a2d: "Kafka decouples heavy parsing from API response path.",
+          a3t: "Diagram-aware parsing", a3d: "Handles image-heavy docs and uses VLM only when needed.",
+          a4t: "Higher recall", a4d: "Hybrid retrieval balances semantic and lexical matching.",
+          a5t: "Enterprise ACL", a5d: "Enforces visibility boundary at retrieval time, not after generation.",
+          a6t: "Continuous improvement", a6d: "Stores usage and evaluation metrics for iterative tuning.",
+          arTitle: "Architecture Diagram", arText: "Responsibilities and connections of key components.",
+          flTitle: "System Flow", flText: "Core processing path from upload to answer.",
+          fln1t: "Step 1", fln2t: "Step 2", fln3t: "Step 3", fln4t: "Step 4",
+          flowUpload: "1) Upload", flowParse: "2) Parse + Structure", flowIndex: "3) Store + Index", flowAsk: "4) Ask + Answer",
+          flowUploadDesc: "chunk upload -> merge -> kafka publish",
+          flowParseDesc: "text/table/image parsing + vlm routing",
+          flowIndexDesc: "postgres metadata + elastic index",
+          flowAskDesc: "hybrid retrieval + acl + llm response",
+          flowEvalTitle: "Continuous Evaluation Loop", flowEvalDesc: "usage logs -> metrics -> improve retrieval and prompts",
+          qsTitle: "Quick Start", qsText: "Validate the main path with minimum steps.",
+          qsStep3: "In UI: register -> upload -> ask",
+          footer: "More docs:"
+        },
+        zh: {
+          title: "AI Knowledge Base Platform",
+          badge: "Open-source knowledge base platform (beta)",
+          heroText: "面向企业场景的知识库基盘：覆盖上传、解析结构化、检索问答、权限控制与评估闭环。",
+          btnGithub: "GitHub 仓库",
+          btnGuideJa: "日语指南",
+          btnGuideEn: "英语指南",
+          btnArchitecture: "架构说明",
+          ovTitle: "产品概览",
+          ovText: "把散落在各处的企业文档转成可检索、可治理、可持续优化的知识资产。",
+          k1t: "输入层", k1d: "文件分片上传与合并",
+          k2t: "处理层", k2d: "解析、分块、结构化、VLM补强",
+          k3t: "检索层", k3d: "向量 + 关键词混合召回",
+          k4t: "治理层", k4d: "owner/public/org/default 权限控制",
+          advTitle: "平台优势",
+          a1t: "端到端一体化", a1d: "从上传到问答再到评估，全流程在一套平台内完成。",
+          a2t: "异步高稳定", a2d: "Kafka 解耦重处理任务，保证接口响应和吞吐。",
+          a3t: "图表文档可用", a3d: "针对图像密集文档按需使用 VLM，提升可读性和可检索性。",
+          a4t: "召回更稳", a4d: "混合检索兼顾语义匹配和关键词命中，减少漏召回。",
+          a5t: "企业权限治理", a5d: "检索阶段强制权限过滤，避免越权信息进入答案上下文。",
+          a6t: "可持续优化", a6d: "沉淀使用日志和评估指标，持续迭代检索与提示词。",
+          arTitle: "架构图", arText: "展示核心组件职责与连接关系。",
+          flTitle: "系统流程", flText: "从上传到回答生成的关键处理路径。",
+          fln1t: "步骤1", fln2t: "步骤2", fln3t: "步骤3", fln4t: "步骤4",
+          flowUpload: "1) 上传", flowParse: "2) 解析 + 结构化", flowIndex: "3) 入库 + 索引", flowAsk: "4) 提问 + 回答",
+          flowUploadDesc: "分片上传 -> 合并 -> Kafka投递",
+          flowParseDesc: "文本/表格/图像解析 + VLM路由",
+          flowIndexDesc: "PostgreSQL元数据 + ES索引",
+          flowAskDesc: "混合召回 + ACL + LLM回答",
+          flowEvalTitle: "持续评估闭环", flowEvalDesc: "使用日志 -> 指标评估 -> 检索与提示优化",
+          qsTitle: "快速启动", qsText: "按最小步骤即可跑通主流程。",
+          qsStep3: "在 UI 完成“注册 -> 上传 -> 提问”",
+          footer: "更多文档："
+        }
+      };
+
+      function setLang(lang) {
+        const dict = i18n[lang] || i18n.ja;
+        document.documentElement.lang = lang;
+        document.querySelectorAll('[data-i18n]').forEach((el) => {
+          const k = el.getAttribute('data-i18n');
+          if (dict[k]) el.textContent = dict[k];
+        });
+        document.querySelectorAll('[data-txt]').forEach((el) => {
+          const k = el.getAttribute('data-txt');
+          if (dict[k]) el.textContent = dict[k];
+        });
+        document.querySelectorAll('.lang-btn').forEach((btn) => {
+          btn.classList.toggle('active', btn.dataset.lang === lang);
+        });
+      }
+
+      document.querySelectorAll('.lang-btn').forEach((btn) => {
+        btn.addEventListener('click', () => setLang(btn.dataset.lang));
+      });
+      setLang('ja');
+    </script>
+  </body>
+</html>

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Contributing - AI Knowledge Base Platform</title>
+    <style>
+      :root {
+        --bg: #f4f7fb;
+        --panel: #ffffff;
+        --ink: #1f2a37;
+        --muted: #5f6d7d;
+        --line: #d9e2ee;
+        --brand: #0d7872;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Avenir Next", "Segoe UI", sans-serif;
+        color: var(--ink);
+        background: radial-gradient(circle at 10% 10%, rgba(13,120,114,0.08), transparent 28%), var(--bg);
+      }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 48px; }
+      .top { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+      .btn {
+        text-decoration: none;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        padding: 9px 12px;
+        font-weight: 700;
+        color: var(--ink);
+        background: #fff;
+      }
+      .btn.primary { background: var(--brand); color: #fff; border-color: var(--brand); }
+      h1 { margin: 8px 0 8px; font-size: clamp(28px, 4vw, 44px); }
+      p, li { color: var(--muted); line-height: 1.65; }
+      .section { margin-top: 12px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; }
+      .section h2 { margin: 0 0 10px; }
+      pre {
+        margin: 0;
+        background: #f6f9fd;
+        border: 1px solid #dce6f1;
+        border-radius: 10px;
+        padding: 12px;
+        overflow: auto;
+      }
+      code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .checklist li { margin-bottom: 6px; }
+      footer { margin-top: 14px; color: #677383; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <main class="wrap">
+      <div class="top">
+        <a class="btn primary" href="./index.html">Back to Home</a>
+        <a class="btn" href="./security.html">Security</a>
+        <a class="btn" href="./release-notes.html">Release Notes</a>
+        <a class="btn" href="https://github.com/tiand23/AIKnowledgeBaseNew" target="_blank" rel="noreferrer">GitHub</a>
+      </div>
+
+      <h1>Contributing Guide</h1>
+      <p>
+        We welcome bug fixes, test improvements, documentation updates, and feature proposals.
+        Keep changes scoped and easy to review.
+      </p>
+
+      <section class="section">
+        <h2>1. Scope</h2>
+        <ul>
+          <li>Bug fixes</li>
+          <li>Tests and quality improvements</li>
+          <li>Documentation updates</li>
+          <li>Feature proposals</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>2. Development Setup</h2>
+        <p><b>Backend:</b></p>
+        <pre><code>python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt</code></pre>
+        <p><b>Full stack with Docker (recommended):</b></p>
+        <pre><code>cd app
+./start_docker.sh pg up</code></pre>
+      </section>
+
+      <section class="section">
+        <h2>3. Branch and Commit</h2>
+        <ul>
+          <li>Create a feature branch from <code>main</code></li>
+          <li>Keep commits small and logically grouped</li>
+          <li>Use clear commit messages: <code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>, <code>test:</code></li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>4. Pull Request Checklist</h2>
+        <ul class="checklist">
+          <li>Change scope and intent are clearly explained</li>
+          <li>Relevant tests were run</li>
+          <li>API/behavior changes are documented</li>
+          <li>Screenshots are attached for UI changes</li>
+          <li>Security/privacy impact is considered</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>5. Coding Rules</h2>
+        <ul>
+          <li>Keep comments and docstrings in English</li>
+          <li>Keep user-facing UI text in Japanese for this project</li>
+          <li>Avoid unrelated formatting-only changes in large files</li>
+          <li>Do not commit secrets (<code>.env</code>, API keys, credentials)</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>6. Issue First for Large Changes</h2>
+        <p>For large features/architecture changes, open an issue and align on:</p>
+        <ul>
+          <li>Problem statement</li>
+          <li>Proposed approach</li>
+          <li>Risks and migration impact</li>
+        </ul>
+      </section>
+
+      <section class="section">
+        <h2>7. License</h2>
+        <p>By contributing, you agree that your contributions are provided under the repository license.</p>
+      </section>
+
+      <footer>Contributing page generated from repository guide and formatted for static hosting.</footer>
+    </main>
+  </body>
+</html>
