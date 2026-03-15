@@ -5,8 +5,9 @@ For architecture/deep design review, see [docs/architecture_ja.md](./docs/archit
 
 ## 1. What You Can Do
 - Upload documents in chunks and process them asynchronously
+- Build page-level visual assets for all supported documents
 - Parse image-heavy documents with VLM-assisted structuring
-- Ask questions with hybrid retrieval (vector + full-text)
+- Ask questions with text + visual + graph retrieval
 - Enforce access boundaries by owner/public/org/default
 - Store evaluation data for continuous quality improvement
 
@@ -45,111 +46,153 @@ cd app
 
 ## 5. System Overview
 ```mermaid
-flowchart TD
-    U["User (Web UI)"] --> A["FastAPI API Gateway<br/>/api/v1/*"]
-    U --> W["WebSocket Chat<br/>/api/v1/chat"]
+flowchart LR
+    U["User / Frontend"]
+    API["FastAPI API"]
+    K["Kafka"]
+    DP["Document Processor"]
+    QA["Q&A Orchestrator"]
 
-    A --> AUTH["Auth/JWT"]
-    A --> UP["Upload API<br/>chunk/status/merge"]
-    A --> S["Search API<br/>/search/hybrid"]
+    subgraph STORE["Storage / Index Layer"]
+        OBJ["MinIO\nRaw files / page PNG / evidence"]
+        PG["PostgreSQL\nmetadata / ACL / units / chunks / VLM meta"]
+        AGE["PostgreSQL + AGE\nGraph store"]
+        ES_T["Elasticsearch\nText Index"]
+        ES_V["Elasticsearch\nVisual Index"]
+    end
 
-    UP --> DB[(PostgreSQL<br/>file_upload/chunk_info)]
-    UP --> R[(Redis<br/>upload bitmap/progress)]
-    UP --> M[(MinIO<br/>raw file/chunks/images)]
-    UP --> K[[Kafka<br/>document_parse]]
+    subgraph MODEL["Model Layer"]
+        TXT_EMB["OpenAI Text Embedding"]
+        VIS_EMB["Gemini Visual Embedding"]
+        VLM["VLM"]
+        LLM["LLM Answering"]
+    end
 
-    K --> P["Document Processor"]
-    P --> M
-    P --> O["OpenAI Vision/Embedding"]
-    P --> ES[(Elasticsearch<br/>text + dense_vector)]
-    P --> DB
+    U --> API
+    API --> K
+    K --> DP
 
-    W --> C["Chat Service"]
-    C --> S
-    C --> O2["OpenAI Chat"]
-    C --> DB
-    C --> R
-    S --> ES
-    S --> ACL["Permission Service<br/>owner/public/org/default"]
+    DP --> OBJ
+    DP --> PG
+    DP --> TXT_EMB
+    DP --> VIS_EMB
+    DP --> VLM
+
+    TXT_EMB --> ES_T
+    VIS_EMB --> ES_V
+    VLM --> PG
+    VLM --> AGE
+    VLM --> ES_T
+
+    U --> QA
+    QA --> ES_T
+    QA --> ES_V
+    QA --> AGE
+    QA --> PG
+    QA --> OBJ
+    QA --> LLM
 ```
 
 ## 6. Main Flows
 
-### 6.1 Upload -> Parse -> Index
+### 6.1 Ingestion: Dual Pipelines + VLM Enhancement
 ```mermaid
-sequenceDiagram
-    participant UI as Web UI
-    participant API as FastAPI /upload
-    participant Redis as Redis
-    participant SQL as PostgreSQL
-    participant MinIO as MinIO
-    participant Kafka as Kafka
-    participant Proc as Document Processor
-    participant ES as Elasticsearch
-    participant OpenAI as OpenAI
+flowchart TD
+    F["Raw File"]
+    DU["Document Unit\npage / sheet / section / slide"]
 
-    UI->>API: POST /upload/chunk (chunk_i)
-    API->>MinIO: save temp/{md5}/{idx}
-    API->>Redis: SETBIT upload:chunks:{md5}
-    API->>SQL: upsert chunk_info / file_upload(status=0)
+    F --> DU
 
-    UI->>API: POST /upload/merge
-    API->>MinIO: compose temp/* -> documents/{user}/{file}
-    API->>SQL: file_upload.status=1 (MERGED)
-    API->>Kafka: publish document_parse(file_md5,...)
+    subgraph VIS["Visual Chain (Full Coverage)"]
+        R["Page-level Render"]
+        PNG["Page PNG"]
+        VP["Visual Pages"]
+        GVE["Gemini Visual Embedding"]
+        VV["Visual Vector"]
+        VI["Visual Index"]
 
-    Kafka->>Proc: consume message
-    Proc->>SQL: status=2 (PROCESSING)
-    Proc->>MinIO: download merged file
-    Proc->>OpenAI: vision/embedding (if needed)
-    Proc->>ES: index text/vector chunks
-    Proc->>SQL: write vectors/sources + status=3 (DONE)
-```
-
-### 6.2 Question -> Retrieve -> Answer
-```mermaid
-sequenceDiagram
-    participant UI as Web UI
-    participant WS as WebSocket /chat
-    participant Chat as Chat Service
-    participant Planner as Planner
-    participant Search as Search Service
-    participant Reasoner as Reasoner
-    participant Critic as Critic
-    participant ACL as Permission Service
-    participant ES as Elasticsearch
-    participant OpenAI as OpenAI Chat
-    participant DB as PostgreSQL/Redis
-
-    UI->>WS: question
-    WS->>Chat: message
-    Chat-->>UI: status(planner)
-    Chat->>Planner: intent routing / query understanding
-    Planner-->>Chat: retrieval plan(top_k, relation)
-    Chat-->>UI: status(retriever)
-    Chat->>Search: retrieval(plan, query, user_ctx)
-    Search->>ACL: build permission filter
-    Search->>ES: vector + text retrieval
-    ES-->>Search: top-k evidence
-    Search-->>Chat: ranked chunks + sources
-    Chat-->>UI: status(reasoner)
-    Chat->>Reasoner: evidence summarization
-    Reasoner-->>Chat: reasoning notes
-    Chat-->>UI: status(critic)
-    Chat->>Critic: evidence check
-    Critic-->>Chat: PASS / reason_code
-    alt PASS
-        Chat-->>UI: status(answer)
-        Chat->>OpenAI: prompt + evidence context
-        OpenAI-->>Chat: answer
-    else FAIL
-        Chat-->>UI: no-evidence + reason_code
+        DU --> R
+        R --> PNG
+        PNG --> VP
+        VP --> GVE
+        GVE --> VV
+        VV --> VI
     end
-    Chat->>DB: usage/conversation logging
-    Chat-->>UI: answer + evidence links/images
+
+    subgraph TXT["Text / Structured Chain"]
+        P["Text / Table / Structure Parse"]
+        SB["Semantic Blocks"]
+        PC["Parent Chunks"]
+        CC["Child Chunks"]
+        OTE["OpenAI Text Embedding"]
+        TV["Text Vector"]
+        TI["Text Index"]
+
+        DU --> P
+        P --> SB
+        SB --> PC
+        PC --> CC
+        CC --> OTE
+        OTE --> TV
+        TV --> TI
+    end
+
+    subgraph ENH["VLM Enhancement (On Demand)"]
+        VLM2["VLM"]
+        TP["Text Projection"]
+        GF["Graph Facts"]
+        RAW["Raw Payload Ref"]
+
+        PNG --> VLM2
+        VLM2 --> TP
+        VLM2 --> GF
+        VLM2 --> RAW
+
+        TP --> TI
+        GF --> AGE2["PostgreSQL + AGE"]
+        RAW --> META["PostgreSQL / MinIO Meta"]
+    end
 ```
 
-### 6.3 LangGraph QA Orchestration (New)
+### 6.2 Question -> Three-Way Retrieval -> Answer
+```mermaid
+flowchart TD
+    Q["User Query"]
+    QU["Query Understanding"]
+
+    OQ["OpenAI Query Embedding"]
+    GQ["Gemini Query Embedding"]
+
+    TR["Text Retrieval\n(Text Index + BM25 + Entity)"]
+    VR["Visual Retrieval\n(Visual Index)"]
+    GR["Graph Retrieval\n(PostgreSQL + AGE)"]
+
+    FU["Fusion / Rerank"]
+    DC["Dynamic Context Selection"]
+    CR["Critic"]
+    LLM2["LLM Answer"]
+    EV["Answer + Evidence"]
+
+    Q --> QU
+
+    QU --> OQ
+    QU --> GQ
+    QU --> GR
+
+    OQ --> TR
+    GQ --> VR
+
+    TR --> FU
+    VR --> FU
+    GR --> FU
+
+    FU --> DC
+    DC --> CR
+    CR --> LLM2
+    LLM2 --> EV
+```
+
+### 6.3 LangGraph QA Orchestration
 The default Q&A path is orchestrated with LangGraph using this pipeline:
 
 ```text
@@ -185,7 +228,15 @@ Current Critic reason codes:
 - `EVIDENCE_WEAK`: evidence exists but confidence is too low
 - `PASS`: answer can proceed
 
-### 6.4 User-visible Stage Status (WebSocket)
+### 6.4 Dynamic Context Selection
+The LLM does not always receive every evidence type. Context is selected by intent:
+
+- `fact_query -> text_only`
+- `layout_query -> text_plus_image`
+- `flow_query -> graph_plus_text`
+- `explicit image request / visual-heavy -> graph_plus_text_plus_image`
+
+### 6.5 User-visible Stage Status (WebSocket)
 During Q&A execution, the frontend shows Japanese stage messages:
 
 - `質問の意図を分析しています...`
@@ -207,12 +258,32 @@ If Critic blocks the answer, the UI also shows `reason_code` and reason text.
 ## 8. Operational Notes
 - Replace all secrets in `.env` before production use
 - Default setup is single-node oriented
-- Tune ES/Kafka/OpenAI parameters per data volume and latency targets
+- Tune ES/Kafka/OpenAI/Gemini/AGE parameters per data volume and latency targets
 - Copy `.env.example` to `.env` before first run
+
+### 8.1 Key Environment Variables
+
+#### Text / Chat
+- `OPENAI_API_KEY`
+- `OPENAI_EMBEDDING_MODEL`
+- `OPENAI_CHAT_MODEL`
+
+#### Visual Embedding
+- `GEMINI_VISUAL_EMBEDDING_ENABLED`
+- `GEMINI_VISUAL_EMBEDDING_BACKEND=ai_studio|vertex|auto`
+- `GEMINI_VISUAL_EMBEDDING_MODEL`
+- `GEMINI_VISUAL_EMBEDDING_DIMENSIONS`
+- `GEMINI_API_KEY`
+
+#### Graph
+- `GRAPH_BACKEND=postgres_relational|postgres_age`
+- `POSTGRES_AGE_ENABLED=true|false`
+- `POSTGRES_AGE_GRAPH_NAME=knowledge_graph`
 
 ## 9. Extra Documents
 - Japanese user guide: [README_ja.md](./README_ja.md)
 - Architecture notes: [docs/architecture_ja.md](./docs/architecture_ja.md)
+- Graph notes: [docs/graph_store_zh.md](./docs/graph_store_zh.md)
 - Security policy: [SECURITY.md](./SECURITY.md)
 - Contributing guide: [CONTRIBUTING.md](./CONTRIBUTING.md)
 - Release notes: [RELEASE_NOTES.md](./RELEASE_NOTES.md)

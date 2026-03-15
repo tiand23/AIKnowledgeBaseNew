@@ -1,103 +1,212 @@
 # AI Knowledge Base Platform
 
-[日本語（このページ）](./README.md) | [English](./README_en.md)
+[日本語（詳細ガイド）](./README_ja.md) | [English](./README_en.md)
 
-企業ドキュメントを「アップロード -> 解析・構造化 -> 検索 -> 根拠付き回答」まで一気通貫で提供する、オープンソースのナレッジ基盤です。  
-Kafka 非同期処理、Hybrid Retrieval、LangGraph 問答制御、組織ベース権限制御を実装しています。
+企業ドキュメントを `アップロード -> 解析・構造化 -> 検索 -> 根拠付き回答` まで一気通貫で扱う、オープンソースのナレッジ基盤です。  
+現在の基盤は、**テキスト主導RAG** を維持しつつ、**全量ページ画像化による視覚検索**、**VLM増強**、**PostgreSQL + Apache AGE による graph 能力** を追加した構成になっています。
 
-## Why This Project (なぜ作ったか)
+## Why This Project
 
-このプロジェクトを作った理由は、企業の現場で「検索できる」だけでは不十分だと感じたからです。  
-実際には、設計書・手順書・画面遷移図が分散しており、必要な情報にたどり着くまで時間がかかります。さらに、権限境界があるため、一般的なチャット型RAGをそのまま導入すると、越権参照や説明不能な回答が運用リスクになります。  
-そこで本基盤では、アップロードから解析・構造化・検索・回答までを一気通貫で設計し、検索段階で権限を強制し、回答には根拠リンクと画像証跡を返す方針にしました。  
-狙いは「答えるAI」を作ることではなく、「企業で監査可能かつ継続運用できるナレッジ基盤」を作ることです。
+企業の現場では、単純な全文検索やチャット型 RAG だけでは足りません。  
+実際には、設計書・画面遷移図・画面レイアウト・表・手順書が混在し、しかも権限境界と説明責任があります。  
+このプロジェクトは、次の 3 つを同時に満たす基盤を目指して設計しています。
+
+- 文書をテキストだけでなく**ページ画像としても**検索できること
+- 画像/レイアウト/遷移図は **VLM と graph** で補強できること
+- 回答時に**根拠と証跡画像**を返せること
 
 ## Key Capabilities
 
-- 分割アップロード + 非同期解析で大きな文書にも対応
-- 画像/図表を含む文書を構造化し、Q&Aで活用
-- `vector + BM25 + relation` の混合検索
-- `owner/public/org/default` のアクセス境界を検索段階で適用
-- 回答に根拠リンクと画像証拠を添付
-- 評価データを蓄積し、改善ループを回せる設計
+- 分割アップロード + Kafka 非同期処理
+- `PDF / Excel / Word / PPT` の page-level visual asset 化
+- OpenAI による text embedding
+- Gemini による visual embedding
+- VLM による text projection / graph facts 生成
+- Elasticsearch による text index / visual index
+- PostgreSQL + Apache AGE による graph store
+- `text + visual + graph` の三路検索
+- 動的コンテキスト選択 (`text_only`, `text_plus_image`, `graph_plus_text`, `graph_plus_text_plus_image`)
+- `owner/public/org/default` ベースのアクセス制御
 
 ## Core Architecture
 
 ```mermaid
-flowchart TD
-    U["ユーザー (Web UI)"] --> API["FastAPI API"]
-    U --> WS["WebSocket Chat"]
-    API --> DB[(PostgreSQL)]
-    API --> Redis[(Redis)]
-    API --> MinIO[(MinIO)]
-    API --> Kafka[[Kafka]]
-    API --> ES[(Elasticsearch)]
-    API --> OpenAI["OpenAI APIs"]
+flowchart LR
+    U["User / Frontend"]
+    API["FastAPI API"]
+    K["Kafka"]
+    DP["Document Processor"]
+    QA["Q&A Orchestrator"]
 
-    Kafka --> Proc["Document Processor"]
-    Proc --> MinIO
-    Proc --> ES
-    Proc --> DB
-    Proc --> OpenAI
+    subgraph STORE["Storage / Index Layer"]
+        OBJ["MinIO\nRaw files / page PNG / evidence"]
+        PG["PostgreSQL\nmetadata / ACL / units / chunks / VLM meta"]
+        AGE["PostgreSQL + AGE\nGraph store"]
+        ES_T["Elasticsearch\nText Index"]
+        ES_V["Elasticsearch\nVisual Index"]
+    end
 
-    WS --> Chat["Chat Service"]
-    Chat --> ES
-    Chat --> DB
-    Chat --> OpenAI
+    subgraph MODEL["Model Layer"]
+        TXT_EMB["OpenAI Text Embedding"]
+        VIS_EMB["Gemini Visual Embedding"]
+        VLM["VLM"]
+        LLM["LLM Answering"]
+    end
+
+    U --> API
+    API --> K
+    K --> DP
+
+    DP --> OBJ
+    DP --> PG
+    DP --> TXT_EMB
+    DP --> VIS_EMB
+    DP --> VLM
+
+    TXT_EMB --> ES_T
+    VIS_EMB --> ES_V
+    VLM --> PG
+    VLM --> AGE
+    VLM --> ES_T
+
+    U --> QA
+    QA --> ES_T
+    QA --> ES_V
+    QA --> AGE
+    QA --> PG
+    QA --> OBJ
+    QA --> LLM
+    LLM --> U
 ```
 
-## Upload -> Parse -> QA Flow
+## Dual Ingestion Pipelines
+
+この基盤の特徴は、**視覚チェーン** と **テキスト/構造化チェーン** を並列で持つことです。  
+VLM は視覚チェーンの前提ではなく、**必要なページにだけ追加される増強レイヤー**です。
 
 ```mermaid
-sequenceDiagram
-    participant UI as Web UI
-    participant API as FastAPI
-    participant K as Kafka
-    participant P as Processor
-    participant ES as Elasticsearch
-    participant WS as WebSocket Chat
-    participant LLM as OpenAI
+flowchart TD
+    F["Raw File"]
+    DU["Document Unit\npage / sheet / section / slide"]
 
-    UI->>API: chunk upload / merge
-    API->>K: publish parse task
-    K->>P: consume
-    P->>ES: index text + vector + structured evidence
+    F --> DU
 
-    UI->>WS: question
-    WS->>ES: hybrid retrieval + ACL filter
-    WS->>LLM: grounded prompt
-    LLM-->>WS: answer + citations
-    WS-->>UI: response + evidence panel
+    subgraph VIS["Visual Chain (Full Coverage)"]
+        R["Page-level Render"]
+        PNG["Page PNG"]
+        VP["Visual Pages"]
+        GVE["Gemini Visual Embedding"]
+        VV["Visual Vector"]
+        VI["Visual Index"]
+
+        DU --> R
+        R --> PNG
+        PNG --> VP
+        VP --> GVE
+        GVE --> VV
+        VV --> VI
+    end
+
+    subgraph TXT["Text / Structured Chain"]
+        P["Text / Table / Structure Parse"]
+        SB["Semantic Blocks"]
+        PC["Parent Chunks"]
+        CC["Child Chunks"]
+        OTE["OpenAI Text Embedding"]
+        TV["Text Vector"]
+        TI["Text Index"]
+
+        DU --> P
+        P --> SB
+        SB --> PC
+        PC --> CC
+        CC --> OTE
+        OTE --> TV
+        TV --> TI
+    end
+
+    subgraph ENH["VLM Enhancement (On Demand)"]
+        VLM2["VLM"]
+        TP["Text Projection"]
+        GF["Graph Facts"]
+        RAW["Raw Payload Ref"]
+
+        PNG --> VLM2
+        VLM2 --> TP
+        VLM2 --> GF
+        VLM2 --> RAW
+
+        TP --> TI
+        GF --> AGE2["PostgreSQL + AGE"]
+        RAW --> META["PostgreSQL / MinIO Meta"]
+    end
 ```
 
-## LangGraph QA Orchestration
+## Retrieval and Answer Flow
 
-通常Q&Aは次の制御フローで実行されます。
+質問は単一路線ではなく、`text / visual / graph` の三路で検索し、意図に応じて LLM に渡すコンテキストを切り替えます。
 
-```text
-Planner -> Retriever -> Reasoner -> Critic -> Answer
+```mermaid
+flowchart TD
+    Q["User Query"]
+    QU["Query Understanding"]
+
+    OQ["OpenAI Query Embedding"]
+    GQ["Gemini Query Embedding"]
+
+    TR["Text Retrieval\n(Text Index + BM25 + Entity)"]
+    VR["Visual Retrieval\n(Visual Index)"]
+    GR["Graph Retrieval\n(PostgreSQL + AGE)"]
+
+    FU["Fusion / Rerank"]
+    DC["Dynamic Context Selection"]
+    CR["Critic"]
+    LLM2["LLM Answer"]
+    EV["Answer + Evidence"]
+
+    Q --> QU
+
+    QU --> OQ
+    QU --> GQ
+    QU --> GR
+
+    OQ --> TR
+    GQ --> VR
+
+    TR --> FU
+    VR --> FU
+    GR --> FU
+
+    FU --> DC
+    DC --> CR
+    CR --> LLM2
+    LLM2 --> EV
 ```
 
-Critic の主な判定コード:
+### Context Modes
 
-- `EVIDENCE_EMPTY`
-- `ANCHOR_MISMATCH`
-- `EVIDENCE_WEAK`
-- `PASS`
+- `fact_query -> text_only`
+- `layout_query -> text_plus_image`
+- `flow_query -> graph_plus_text`
+- `visual-heavy / explicit image request -> graph_plus_text_plus_image`
 
-フロントには実行中ステータスを日本語で表示:
+## Current Stack
 
-- `質問の意図を分析しています...`
-- `根拠を検索しています...`
-- `根拠を整理しています...`
-- `回答の妥当性を確認しています...`
-- `回答を生成しています...`
+- API / Orchestration: `FastAPI`, `WebSocket`, `LangGraph`
+- Async pipeline: `Kafka`
+- Metadata / ACL / Chunks / VLM meta: `PostgreSQL`
+- Graph store: `PostgreSQL + Apache AGE`
+- Object storage: `MinIO`
+- Search indexes: `Elasticsearch`
+- Text embedding: `OpenAI`
+- Visual embedding: `Gemini`
+- Visual understanding: `VLM`
 
 ## Quick Start (Docker)
 
 ```bash
 cp .env.example .env
-# .env を編集（OPENAI_API_KEY、DB/Redis/MinIO パスワード等）
+# .env を編集（最低限 OPENAI_API_KEY / GEMINI_API_KEY / 各種パスワード）
 cd app
 ./start_docker.sh pg up
 ```
@@ -115,6 +224,28 @@ cd app
 ./start_docker.sh pg down
 ```
 
+## Important Environment Variables
+
+### Text / Chat
+
+- `OPENAI_API_KEY`
+- `OPENAI_EMBEDDING_MODEL`
+- `OPENAI_CHAT_MODEL`
+
+### Visual Embedding
+
+- `GEMINI_VISUAL_EMBEDDING_ENABLED`
+- `GEMINI_VISUAL_EMBEDDING_BACKEND=ai_studio|vertex|auto`
+- `GEMINI_VISUAL_EMBEDDING_MODEL`
+- `GEMINI_VISUAL_EMBEDDING_DIMENSIONS`
+- `GEMINI_API_KEY` (AI Studio route)
+
+### Graph
+
+- `GRAPH_BACKEND=postgres_relational|postgres_age`
+- `POSTGRES_AGE_ENABLED=true|false`
+- `POSTGRES_AGE_GRAPH_NAME=knowledge_graph`
+
 ## Main Endpoints
 
 - `POST /api/v1/auth/register`
@@ -126,9 +257,10 @@ cd app
 
 ## Documents
 
-- 日本語利用ガイド（詳細）: [README_ja.md](./README_ja.md)
-- 英語版利用ガイド: [README_en.md](./README_en.md)
+- 日本語詳細ガイド: [README_ja.md](./README_ja.md)
+- English guide: [README_en.md](./README_en.md)
 - アーキテクチャ詳細: [docs/architecture_ja.md](./docs/architecture_ja.md)
+- Graph 設計メモ: [docs/graph_store_zh.md](./docs/graph_store_zh.md)
 - セキュリティ: [SECURITY.md](./SECURITY.md)
 - コントリビュート: [CONTRIBUTING.md](./CONTRIBUTING.md)
 - リリースノート: [RELEASE_NOTES.md](./RELEASE_NOTES.md)

@@ -5,8 +5,11 @@
 
 ## 1. できること
 - ドキュメントを分割アップロードして非同期解析
-- 画像/図表を含む文書を構造化して検索可能にする
-- ハイブリッド検索（ベクトル + 全文）でQ&A
+- すべての文書を page-level visual asset として扱う視覚検索基盤
+- テキスト/表/構造解析による text-first RAG
+- Gemini 画像ベクトル + OpenAI テキストベクトルの二重検索
+- VLM による text projection / graph facts の生成
+- PostgreSQL + Apache AGE による graph 検索
 - 組織タグベースのアクセス制御（owner/public/org/default）
 - 評価データを蓄積し、品質改善に活用
 
@@ -45,111 +48,153 @@ cd app
 
 ## 5. システム概要
 ```mermaid
-flowchart TD
-    U["ユーザー (Web UI)"] --> A["FastAPI API Gateway<br/>/api/v1/*"]
-    U --> W["WebSocket Chat<br/>/api/v1/chat"]
+flowchart LR
+    U["User / Frontend"]
+    API["FastAPI API"]
+    K["Kafka"]
+    DP["Document Processor"]
+    QA["Q&A Orchestrator"]
 
-    A --> AUTH["Auth/JWT"]
-    A --> UP["Upload API<br/>chunk/status/merge"]
-    A --> S["Search API<br/>/search/hybrid"]
+    subgraph STORE["Storage / Index Layer"]
+        OBJ["MinIO\nRaw files / page PNG / evidence"]
+        PG["PostgreSQL\nmetadata / ACL / units / chunks / VLM meta"]
+        AGE["PostgreSQL + AGE\nGraph store"]
+        ES_T["Elasticsearch\nText Index"]
+        ES_V["Elasticsearch\nVisual Index"]
+    end
 
-    UP --> DB[(PostgreSQL<br/>file_upload/chunk_info)]
-    UP --> R[(Redis<br/>upload bitmap/progress)]
-    UP --> M[(MinIO<br/>raw file/chunks/images)]
-    UP --> K[[Kafka<br/>document_parse]]
+    subgraph MODEL["Model Layer"]
+        TXT_EMB["OpenAI Text Embedding"]
+        VIS_EMB["Gemini Visual Embedding"]
+        VLM["VLM"]
+        LLM["LLM Answering"]
+    end
 
-    K --> P["Document Processor"]
-    P --> M
-    P --> O["OpenAI Vision/Embedding"]
-    P --> ES[(Elasticsearch<br/>text + dense_vector)]
-    P --> DB
+    U --> API
+    API --> K
+    K --> DP
 
-    W --> C["Chat Service"]
-    C --> S
-    C --> O2["OpenAI Chat"]
-    C --> DB
-    C --> R
-    S --> ES
-    S --> ACL["Permission Service<br/>owner/public/org/default"]
+    DP --> OBJ
+    DP --> PG
+    DP --> TXT_EMB
+    DP --> VIS_EMB
+    DP --> VLM
+
+    TXT_EMB --> ES_T
+    VIS_EMB --> ES_V
+    VLM --> PG
+    VLM --> AGE
+    VLM --> ES_T
+
+    U --> QA
+    QA --> ES_T
+    QA --> ES_V
+    QA --> AGE
+    QA --> PG
+    QA --> OBJ
+    QA --> LLM
 ```
 
 ## 6. 主要フロー
 
-### 6.1 アップロード -> 解析 -> 入庫
+### 6.1 文書入庫: 二重チェーン + VLM 増強
 ```mermaid
-sequenceDiagram
-    participant UI as Web UI
-    participant API as FastAPI /upload
-    participant Redis as Redis
-    participant SQL as PostgreSQL
-    participant MinIO as MinIO
-    participant Kafka as Kafka
-    participant Proc as Document Processor
-    participant ES as Elasticsearch
-    participant OpenAI as OpenAI
+flowchart TD
+    F["Raw File"]
+    DU["Document Unit\npage / sheet / section / slide"]
 
-    UI->>API: POST /upload/chunk (chunk_i)
-    API->>MinIO: save temp/{md5}/{idx}
-    API->>Redis: SETBIT upload:chunks:{md5}
-    API->>SQL: upsert chunk_info / file_upload(status=0)
+    F --> DU
 
-    UI->>API: POST /upload/merge
-    API->>MinIO: compose temp/* -> documents/{user}/{file}
-    API->>SQL: file_upload.status=1 (MERGED)
-    API->>Kafka: publish document_parse(file_md5,...)
+    subgraph VIS["Visual Chain (Full Coverage)"]
+        R["Page-level Render"]
+        PNG["Page PNG"]
+        VP["Visual Pages"]
+        GVE["Gemini Visual Embedding"]
+        VV["Visual Vector"]
+        VI["Visual Index"]
 
-    Kafka->>Proc: consume message
-    Proc->>SQL: status=2 (PROCESSING)
-    Proc->>MinIO: download merged file
-    Proc->>OpenAI: vision/embedding (if needed)
-    Proc->>ES: index text/vector chunks
-    Proc->>SQL: write vectors/sources + status=3 (DONE)
-```
-
-### 6.2 質問 -> 召回 -> 回答
-```mermaid
-sequenceDiagram
-    participant UI as Web UI
-    participant WS as WebSocket /chat
-    participant Chat as Chat Service
-    participant Planner as Planner
-    participant Search as Search Service
-    participant Reasoner as Reasoner
-    participant Critic as Critic
-    participant ACL as Permission Service
-    participant ES as Elasticsearch
-    participant OpenAI as OpenAI Chat
-    participant DB as PostgreSQL/Redis
-
-    UI->>WS: 質問送信
-    WS->>Chat: message
-    Chat-->>UI: status(planner)
-    Chat->>Planner: intent routing / query understanding
-    Planner-->>Chat: retrieval plan(top_k, relation)
-    Chat-->>UI: status(retriever)
-    Chat->>Search: retrieval(plan, query, user_ctx)
-    Search->>ACL: build permission filter
-    Search->>ES: vector + text retrieval
-    ES-->>Search: top-k evidence
-    Search-->>Chat: ranked chunks + sources
-    Chat-->>UI: status(reasoner)
-    Chat->>Reasoner: evidence summarization
-    Reasoner-->>Chat: reasoning notes
-    Chat-->>UI: status(critic)
-    Chat->>Critic: evidence check
-    Critic-->>Chat: PASS / reason_code
-    alt PASS
-        Chat-->>UI: status(answer)
-        Chat->>OpenAI: prompt + evidence context
-        OpenAI-->>Chat: answer
-    else FAIL
-        Chat-->>UI: no-evidence + reason_code
+        DU --> R
+        R --> PNG
+        PNG --> VP
+        VP --> GVE
+        GVE --> VV
+        VV --> VI
     end
-    Chat->>DB: usage/conversation logging
-    Chat-->>UI: 回答 + 根拠リンク/画像
+
+    subgraph TXT["Text / Structured Chain"]
+        P["Text / Table / Structure Parse"]
+        SB["Semantic Blocks"]
+        PC["Parent Chunks"]
+        CC["Child Chunks"]
+        OTE["OpenAI Text Embedding"]
+        TV["Text Vector"]
+        TI["Text Index"]
+
+        DU --> P
+        P --> SB
+        SB --> PC
+        PC --> CC
+        CC --> OTE
+        OTE --> TV
+        TV --> TI
+    end
+
+    subgraph ENH["VLM Enhancement (On Demand)"]
+        VLM2["VLM"]
+        TP["Text Projection"]
+        GF["Graph Facts"]
+        RAW["Raw Payload Ref"]
+
+        PNG --> VLM2
+        VLM2 --> TP
+        VLM2 --> GF
+        VLM2 --> RAW
+
+        TP --> TI
+        GF --> AGE2["PostgreSQL + AGE"]
+        RAW --> META["PostgreSQL / MinIO Meta"]
+    end
 ```
 
-### 6.3 LangGraph問答オーケストレーション（新規）
+### 6.2 質問 -> 三路召回 -> 回答
+```mermaid
+flowchart TD
+    Q["User Query"]
+    QU["Query Understanding"]
+
+    OQ["OpenAI Query Embedding"]
+    GQ["Gemini Query Embedding"]
+
+    TR["Text Retrieval\n(Text Index + BM25 + Entity)"]
+    VR["Visual Retrieval\n(Visual Index)"]
+    GR["Graph Retrieval\n(PostgreSQL + AGE)"]
+
+    FU["Fusion / Rerank"]
+    DC["Dynamic Context Selection"]
+    CR["Critic"]
+    LLM2["LLM Answer"]
+    EV["Answer + Evidence"]
+
+    Q --> QU
+
+    QU --> OQ
+    QU --> GQ
+    QU --> GR
+
+    OQ --> TR
+    GQ --> VR
+
+    TR --> FU
+    VR --> FU
+    GR --> FU
+
+    FU --> DC
+    DC --> CR
+    CR --> LLM2
+    LLM2 --> EV
+```
+
+### 6.3 LangGraph問答オーケストレーション
 本プロジェクトの通常Q&Aパスは、LangGraphで次の5段を実行します。
 
 ```text
@@ -185,7 +230,17 @@ Critic の判定コード（現行）:
 - `EVIDENCE_WEAK`: 根拠はあるが信頼度が低い
 - `PASS`: 回答可能
 
-### 6.4 ユーザー可視ステータス（WebSocket）
+### 6.4 Dynamic Context Selection
+質問タイプに応じて、LLM に渡す証拠形式を切り替えます。
+
+- `fact_query -> text_only`
+- `layout_query -> text_plus_image`
+- `flow_query -> graph_plus_text`
+- `明示的な画像要求 / visual-heavy -> graph_plus_text_plus_image`
+
+これにより、すべての回答で画像を無条件投入せず、コストとノイズを抑えています。
+
+### 6.5 ユーザー可視ステータス（WebSocket）
 Q&A実行中は、フロント側に段階ステータスを日本語で表示します。
 
 - `質問の意図を分析しています...`
@@ -205,10 +260,29 @@ Criticで保留になった場合は、`reason_code` と理由文を表示しま
 - `WS /api/v1/chat?token=...`
 
 ## 8. 設定と運用上の注意
-- 本番では `.env` の秘密情報（JWT/DB/SMTP/OpenAI）を必ず差し替えてください
+- 本番では `.env` の秘密情報（JWT/DB/SMTP/OpenAI/Gemini）を必ず差し替えてください
 - 初期設定は単一ノード想定です（HA構成は別途設計が必要）
-- 外部サービス（ES/Kafka/OpenAI）のパラメータは実データに合わせて調整してください
+- 外部サービス（ES/Kafka/OpenAI/Gemini/AGE）のパラメータは実データに合わせて調整してください
 - 初回は `.env.example` を `.env` にコピーしてから利用してください
+
+### 8.1 主要環境変数
+
+#### Text / Chat
+- `OPENAI_API_KEY`
+- `OPENAI_EMBEDDING_MODEL`
+- `OPENAI_CHAT_MODEL`
+
+#### Visual Embedding
+- `GEMINI_VISUAL_EMBEDDING_ENABLED`
+- `GEMINI_VISUAL_EMBEDDING_BACKEND=ai_studio|vertex|auto`
+- `GEMINI_VISUAL_EMBEDDING_MODEL`
+- `GEMINI_VISUAL_EMBEDDING_DIMENSIONS`
+- `GEMINI_API_KEY`
+
+#### Graph
+- `GRAPH_BACKEND=postgres_relational|postgres_age`
+- `POSTGRES_AGE_ENABLED=true|false`
+- `POSTGRES_AGE_GRAPH_NAME=knowledge_graph`
 
 ## 9. 既知の制約（v0.1.0-draft）
 - 単一ノード構成を前提（高可用構成は未提供）
@@ -218,6 +292,7 @@ Criticで保留になった場合は、`reason_code` と理由文を表示しま
 ## 10. 追加ドキュメント
 - 英語版ユーザーガイド: [README_en.md](./README_en.md)
 - 設計思想・アーキテクチャ詳細: [docs/architecture_ja.md](./docs/architecture_ja.md)
+- Graph 設計メモ: [docs/graph_store_zh.md](./docs/graph_store_zh.md)
 - セキュリティポリシー: [SECURITY.md](./SECURITY.md)
 - コントリビュート: [CONTRIBUTING.md](./CONTRIBUTING.md)
 - リリースノート: [RELEASE_NOTES.md](./RELEASE_NOTES.md)
