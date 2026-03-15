@@ -6,8 +6,8 @@ import re
 from typing import List, Dict, Optional, Any
 from uuid import uuid4
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
-from app.models.file import FileUpload, DocumentVector
+from sqlalchemy import select, or_, tuple_
+from app.models.file import FileUpload, DocumentVector, ChildChunk
 from app.models.user import User, UserRole
 from app.clients.elasticsearch_client import es_client
 from app.services.embedding_service import embedding_service
@@ -131,6 +131,9 @@ class SearchService:
                 "image_path": {
                     "type": "keyword",
                     "ignore_above": 512
+                },
+                "quality_status": {
+                    "type": "keyword"
                 }
             }
         }
@@ -483,8 +486,7 @@ class SearchService:
             .limit(max(1, top_k))
         )
         rows = await db.execute(stmt)
-
-        results: List[Dict[str, Any]] = []
+        raw_results: List[Dict[str, Any]] = []
         for row in rows.all():
             file_md5 = row[0]
             chunk_id = int(row[1] or 0)
@@ -496,7 +498,7 @@ class SearchService:
                     score += 0.6
             if kb_profile and profile_map.get(file_md5) == kb_profile:
                 score += 0.3
-            results.append(
+            raw_results.append(
                 {
                     "file_md5": file_md5,
                     "chunk_id": chunk_id,
@@ -506,7 +508,13 @@ class SearchService:
                     "kb_profile": profile_map.get(file_md5),
                 }
             )
-        return results
+
+        quality_map = await SearchService._load_chunk_quality_map(db, raw_results)
+        for row in raw_results:
+            key = (str(row.get("file_md5") or ""), int(row.get("chunk_id") or 0))
+            row["quality_status"] = quality_map.get(key, "weak")
+
+        return SearchService._prioritize_quality_rows(raw_results, top_k)
 
     @staticmethod
     async def _load_accessible_file_metadata(
@@ -548,6 +556,7 @@ class SearchService:
                     "page": source.get("page"),
                     "sheet": source.get("sheet"),
                     "chunk_type": source.get("chunk_type"),
+                    "quality_status": source.get("quality_status"),
                     "kb_profile": source.get("kb_profile"),
                     "source_type": source_name,
                     "rank": rank,
@@ -570,6 +579,49 @@ class SearchService:
             "bm25": text_budget * (bm25 / total_text),
             "entity": entity,
         }
+
+    @staticmethod
+    async def _load_chunk_quality_map(
+        db: AsyncSession,
+        rows: List[Dict[str, Any]],
+    ) -> Dict[tuple[str, int], str]:
+        keys = {
+            (str(row.get("file_md5") or ""), int(row.get("chunk_id") or 0))
+            for row in rows
+            if row.get("file_md5") and int(row.get("chunk_id") or 0) >= 0
+        }
+        if not keys:
+            return {}
+
+        result = await db.execute(
+            select(ChildChunk.file_md5, ChildChunk.child_chunk_id, ChildChunk.quality_status)
+            .where(tuple_(ChildChunk.file_md5, ChildChunk.child_chunk_id).in_(list(keys)))
+        )
+        quality_map: Dict[tuple[str, int], str] = {}
+        for file_md5, child_chunk_id, quality_status in result.all():
+            quality_map[(str(file_md5 or ""), int(child_chunk_id or 0))] = str(quality_status or "weak")
+        return quality_map
+
+    @staticmethod
+    def _prioritize_quality_rows(
+        rows: List[Dict[str, Any]],
+        top_k: int,
+    ) -> List[Dict[str, Any]]:
+        accepted: List[Dict[str, Any]] = []
+        weak: List[Dict[str, Any]] = []
+        for row in rows:
+            status = str(row.get("quality_status") or "weak")
+            if status == "rejected":
+                continue
+            if status == "accepted":
+                accepted.append(row)
+            else:
+                weak.append(row)
+
+        selected = accepted[: max(1, top_k)]
+        if len(selected) < max(1, top_k):
+            selected.extend(weak[: max(1, top_k) - len(selected)])
+        return selected
 
     @staticmethod
     def _rrf_fuse(
@@ -830,7 +882,7 @@ class SearchService:
             entity=entity_hits,
             selected_profile=selected_profile,
             entities=entities,
-            top_k=top_k,
+            top_k=max(top_k * 3, 20),
         )
 
         if not fused:
@@ -842,6 +894,12 @@ class SearchService:
                 kb_profile=None,
                 top_k=top_k,
             )
+
+        quality_map = await SearchService._load_chunk_quality_map(db, fused)
+        for row in fused:
+            key = (str(row.get("file_md5") or ""), int(row.get("chunk_id") or 0))
+            row["quality_status"] = quality_map.get(key, str(row.get("quality_status") or "weak"))
+        fused = SearchService._prioritize_quality_rows(fused, top_k)
 
         file_metadata = await SearchService._load_accessible_file_metadata(db, user)
         results: List[Dict[str, Any]] = []
@@ -861,6 +919,7 @@ class SearchService:
                     "file_name": file_info.file_name if file_info else row.get("file_name", "未知文件"),
                     "kb_profile": profile_value,
                     "channels": row.get("channels", []),
+                    "quality_status": row.get("quality_status", "weak"),
                 }
             )
         post_top = [f"{r.get('file_md5', '')}_{r.get('chunk_id', 0)}:{r.get('score', 0)}" for r in results[:5]]
@@ -892,7 +951,11 @@ class SearchService:
                     "file_name": row[3] or "未知文件",
                 }
             )
-        return results
+        quality_map = await SearchService._load_chunk_quality_map(db, results)
+        for row in results:
+            key = (str(row.get("file_md5") or ""), int(row.get("chunk_id") or 0))
+            row["quality_status"] = quality_map.get(key, "weak")
+        return SearchService._prioritize_quality_rows(results, limit)
 
 
 search_service = SearchService()

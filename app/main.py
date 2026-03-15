@@ -22,6 +22,7 @@ from app.clients.elasticsearch_client import es_client
 from app.clients.kafka_client import kafka_client
 from app.models import Base
 from app.services.document_processor_service import document_processor_service
+from app.services.graph_store_service import graph_store_service
 from app.services.intent_keyword_config_service import intent_keyword_config_service
 from app.services.master_data_service import master_data_service
 from app.services.websocket_manager import websocket_manager
@@ -139,6 +140,8 @@ async def lifespan(app: FastAPI):
         await ensure_runtime_schema()
         async with db_client.SessionLocal() as session:
             await master_data_service.ensure_default_org_tag(session)
+            graph_bootstrap = await graph_store_service.ensure_backend_ready(session)
+            logger.info("Graph backend status: %s", graph_bootstrap)
             await session.commit()
             await intent_keyword_config_service.sync_runtime_from_db(session)
         logger.info("数据库连接与表结构初始化成功")
@@ -154,6 +157,13 @@ async def lifespan(app: FastAPI):
 
         await kafka_client.connect()
         logger.info("Kafka 连接成功")
+        await kafka_client.ensure_topics(
+            [
+                "document_parse",
+                settings.KAFKA_DOCUMENT_PARSE_DLQ_TOPIC,
+            ]
+        )
+        logger.info("Kafka 核心 topics 已就绪")
 
         try:
             consumer_instances = max(1, int(settings.KAFKA_CONSUMER_INSTANCES))

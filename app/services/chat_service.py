@@ -28,6 +28,7 @@ from app.services.prompt_service import prompt_service
 from app.services.conversation_service import conversation_service
 from app.services.query_understanding_service import query_understanding_service
 from app.services.usage_event_service import usage_event_service
+from app.services.visual_search_service import visual_search_service
 from app.services.langgraph_qa_orchestrator import LangGraphQAOrchestrator, QAState
 from app.clients.openai_chat_client import openai_chat_client
 from app.utils.logger import get_logger
@@ -48,7 +49,13 @@ class ChatService:
         self.conversation_service = conversation_service
         self.query_understanding_service = query_understanding_service
     
-    def _format_search_results(self, results: List[Dict]) -> tuple[str, List[Dict]]:
+    def _format_search_results(
+        self,
+        results: List[Dict],
+        *,
+        include_images: bool = True,
+        evidence_section: str = "Evidence",
+    ) -> tuple[str, List[Dict]]:
         """
         格式化检索结果为上下文和来源信息
         
@@ -61,7 +68,7 @@ class ChatService:
         if not results:
             return "関連する参照情報は見つかりませんでした。", []
         
-        context_parts = []
+        context_parts = [f"[Context Mode]\n{evidence_section}\n"]
         sources = []
         
         for i, result in enumerate(results, 1):
@@ -70,12 +77,19 @@ class ChatService:
                 text_content = text_content[:1400] + "..."
             
             context_parts.append(
-                f"[文書{i}]\n"
-                f"ファイル: {result.get('file_name', '不明なファイル')}\n"
-                f"チャンク: {result.get('chunk_id', '-')}\n"
-                f"ページ: {result.get('page', '-')}\n"
-                f"シート: {result.get('sheet', '-')}\n"
-                f"内容: {text_content}\n"
+                (
+                    f"[文書{i}]\n"
+                    f"ファイル: {result.get('file_name', '不明なファイル')}\n"
+                    f"チャンク: {result.get('chunk_id', '-')}\n"
+                    f"ページ: {result.get('page', '-')}\n"
+                    f"シート: {result.get('sheet', '-')}\n"
+                    f"ページラベル: {result.get('page_label', '-')}\n"
+                )
+                + (f"画像: {result.get('image_path', '-')}\n" if include_images else "")
+                + (
+                    f"証拠タイプ: {'graph' if self._is_relation_evidence_row(result) else 'visual' if self._is_visual_evidence_row(result) else 'text'}\n"
+                )
+                + f"内容: {text_content}\n"
             )
             
             sources.append({
@@ -85,11 +99,94 @@ class ChatService:
                 "chunk_id": result.get('chunk_id'),
                 "page": result.get('page'),
                 "sheet": result.get('sheet'),
+                "page_label": result.get('page_label'),
+                "image_path": result.get('image_path'),
                 "score": result.get('score', 0.0)
             })
         
         context_str = "\n".join(context_parts)
         return context_str, sources
+
+    @staticmethod
+    def _dedupe_context_rows(results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        seen: set[str] = set()
+        deduped: List[Dict[str, Any]] = []
+        for row in results or []:
+            key = (
+                f"{row.get('file_md5','')}::{row.get('chunk_id','')}::"
+                f"{row.get('visual_page_id','')}::{row.get('document_unit_id','')}"
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            deduped.append(row)
+        return deduped
+
+    def _select_context_mode(
+        self,
+        intent: str,
+        message: str,
+        results: List[Dict[str, Any]],
+    ) -> str:
+        text = (message or "").lower()
+        wants_visual = (
+            intent == "layout_query"
+            or self._is_visual_diagram_request(message)
+            or any(k in text for k in {"見せて", "画像", "図", "レイアウト", "画面", "スクリーンショット"})
+        )
+        if intent == "layout_query":
+            return "text_plus_image"
+        if intent == "flow_query":
+            return "graph_plus_text_plus_image" if wants_visual else "graph_plus_text"
+        if intent == "schedule_query" and wants_visual:
+            return "text_plus_image"
+        return "text_only"
+
+    def _build_context_package(
+        self,
+        *,
+        intent: str,
+        message: str,
+        results: List[Dict[str, Any]],
+    ) -> tuple[str, List[Dict[str, Any]], str]:
+        mode = self._select_context_mode(intent, message, results)
+        rows = self._dedupe_context_rows(results or [])
+        relation_rows = [r for r in rows if self._is_relation_evidence_row(r)]
+        visual_rows = [r for r in rows if self._is_visual_evidence_row(r)]
+        text_rows = [r for r in rows if (not self._is_relation_evidence_row(r)) and (not self._is_visual_evidence_row(r))]
+        if not text_rows:
+            text_rows = [r for r in rows if not self._is_relation_evidence_row(r)]
+
+        selected: List[Dict[str, Any]] = []
+        include_images = False
+        evidence_section = "Text Evidence"
+
+        if mode == "text_plus_image":
+            selected = text_rows[:4]
+            if visual_rows:
+                selected += visual_rows[:1]
+                include_images = True
+            evidence_section = "Text + Visual Evidence"
+        elif mode == "graph_plus_text":
+            selected = relation_rows[:4] + text_rows[:2]
+            evidence_section = "Graph + Text Evidence"
+        elif mode == "graph_plus_text_plus_image":
+            selected = relation_rows[:4] + text_rows[:2]
+            if visual_rows:
+                selected += visual_rows[:1]
+                include_images = True
+            evidence_section = "Graph + Text + Visual Evidence"
+        else:
+            selected = text_rows[:6] if text_rows else rows[:6]
+            evidence_section = "Text Evidence"
+
+        selected = self._dedupe_context_rows(selected)
+        context, sources = self._format_search_results(
+            selected,
+            include_images=include_images,
+            evidence_section=evidence_section,
+        )
+        return context, sources, mode
 
     async def _record_usage_event(
         self,
@@ -133,10 +230,16 @@ class ChatService:
             float(strategy.retrieval_weight_vector) + float(strategy.retrieval_weight_bm25),
         )
         relation_weight = max(0.0, float(strategy.retrieval_weight_relation))
+        visual_weight = 0.18 if selected_profile == "design" else 0.12
         total = hybrid_weight + relation_weight
         if total <= 0:
-            return {"hybrid": 0.8, "relation": 0.2}
-        return {"hybrid": hybrid_weight / total, "relation": relation_weight / total}
+            return {"hybrid": 0.68, "relation": 0.17, "visual": 0.15}
+        scale = max(0.0, 1.0 - visual_weight)
+        return {
+            "hybrid": scale * (hybrid_weight / total),
+            "relation": scale * (relation_weight / total),
+            "visual": visual_weight,
+        }
 
     @staticmethod
     def _relation_enabled_for_profile(selected_profile: str) -> bool:
@@ -702,7 +805,7 @@ class ChatService:
         q = (query_text or "").lower()
         explicit_relation_ask = any(k in q for k in get_relation_presentation_keys())
         ask_list_style = any(k in q for k in ("一覧", "列出", "list", "show all", "全部"))
-        threshold = 2 if ask_list_style else (3 if explicit_relation_ask else 5)
+        threshold = 2 if ask_list_style else (1 if explicit_relation_ask else 5)
         return rel_lines >= threshold
 
     @classmethod
@@ -718,6 +821,14 @@ class ChatService:
         - 检索结果必须至少命中一个锚点
         """
         strong_anchors = cls._extract_strong_anchors(query_text, selected_profile=selected_profile)
+        if cls._is_relation_presentation_query(query_text):
+            generic_relation_terms = list(get_relation_presentation_keys()) + list(get_flow_query_keys())
+            filtered = [
+                anchor
+                for anchor in strong_anchors
+                if not any(term and term in anchor.lower() for term in generic_relation_terms)
+            ]
+            strong_anchors = filtered
         if not strong_anchors:
             return True
 
@@ -874,6 +985,24 @@ class ChatService:
         def convert(text: str, mapping: Dict[str, str]) -> str:
             return "".join(mapping.get(ch, ch) for ch in text)
 
+        trimmed_suffixes = ("画面", "ページ", "screen", "page")
+
+        def strip_suffix_variants(text: str) -> List[str]:
+            out = [text]
+            for suffix in trimmed_suffixes:
+                if text.endswith(suffix) and len(text) > len(suffix):
+                    out.append(text[: -len(suffix)])
+            return out
+
+        base_variants = set()
+        for candidate in strip_suffix_variants(tok):
+            base_variants.add(candidate)
+            base_variants.add(ChatService._normalize_match_text(candidate))
+            base_variants.add(convert(candidate, s2t))
+            base_variants.add(convert(candidate, t2s))
+            base_variants.add(ChatService._normalize_match_text(convert(candidate, s2t)))
+            base_variants.add(ChatService._normalize_match_text(convert(candidate, t2s)))
+
         candidates = {
             tok,
             ChatService._normalize_match_text(tok),
@@ -882,6 +1011,7 @@ class ChatService:
             ChatService._normalize_match_text(convert(tok, s2t)),
             ChatService._normalize_match_text(convert(tok, t2s)),
         }
+        candidates.update(base_variants)
         return [c for c in candidates if c]
 
     @classmethod
@@ -899,6 +1029,7 @@ class ChatService:
         suffix_patterns = [
             r"(ですか|ますか|でしょうか|について|とは|って)$",
             r"(何ですか|なに|何|どれ|どのくらい|どんな|教えて)$",
+            r"(お願い|お願いします|みせて|見せて)$",
             r"(擅长什么|擅長什麼|是什么|是什麼|有哪些|有哪一些|怎么|如何|多少|最近|最新)$",
             r"(ね|よ|かな|か|呢|吗|嗎|嘛|呀|啊)$",
         ]
@@ -919,6 +1050,8 @@ class ChatService:
             "最近", "最新", "直近", "強み", "スキル", "能力", "経験", "紹介", "説明",
             "構成図", "システム図", "システム構成図", "構成", "アーキテクチャ", "フロー", "関係図", "連携図", "システム",
             "定義", "確認", "画面", "レイアウト", "画面レイアウト",
+            "画面遷移図", "遷移図", "画面遷移", "遷移元", "遷移先",
+            "お願い", "お願いします", "みせて", "見せて",
             "なに", "何", "どれ", "どう",
             "简历", "项目", "职位", "擅长", "技能", "能力", "经验", "什么", "哪些", "怎么", "如何",
             "please", "what", "which", "how",
@@ -1061,6 +1194,17 @@ class ChatService:
             return True
         return False
 
+    @staticmethod
+    def _is_visual_evidence_row(row: Dict[str, Any]) -> bool:
+        if str(row.get("chunk_type") or "") == "visual_page":
+            return True
+        if str(row.get("source_type") or "") == "visual":
+            return True
+        if str(row.get("image_path") or "").strip():
+            return True
+        text = str(row.get("text_content") or "")
+        return text.startswith("[visual_page]") or "[图片]" in text or "[diagram_page]" in text
+
     async def _promote_layout_image_evidence(
         self,
         db: AsyncSession,
@@ -1086,11 +1230,15 @@ class ChatService:
                 bonus += 0.22
             if "画面id" in text.lower() or "画面名" in text:
                 bonus += 0.10
+            if self._is_visual_evidence_row(row):
+                bonus += 0.45
 
             file_md5 = str(row.get("file_md5") or "")
             chunk_id = row.get("chunk_id")
             has_image = False
-            if file_md5 and chunk_id is not None:
+            if self._is_visual_evidence_row(row):
+                has_image = bool(str(row.get("image_path") or "").strip())
+            elif file_md5 and chunk_id is not None and int(chunk_id) >= 0:
                 try:
                     stmt = (
                         select(ChunkSource.id)
@@ -1174,11 +1322,12 @@ class ChatService:
         query_text: str,
         hybrid_results: List[Dict[str, Any]],
         relation_results: List[Dict[str, Any]],
+        visual_results: List[Dict[str, Any]],
         selected_profile: str,
         top_k: int = 8,
     ) -> List[Dict[str, Any]]:
         """
-        并行三路中的“hybrid + relation”融合（RRF + 证据类型偏置）。
+        并行三路中的“hybrid + relation + visual”融合（RRF + 证据类型偏置）。
         """
         preference = cls._evidence_preference(query_text)
         weights = cls._profile_fusion_weights(selected_profile)
@@ -1202,7 +1351,9 @@ class ChatService:
                     "rrf_score": 0.0,
                     "hybrid_rank": idx,
                     "relation_rank": None,
+                    "visual_rank": None,
                     "is_relation_evidence": cls._is_relation_evidence_row(row),
+                    "is_visual_evidence": cls._is_visual_evidence_row(row),
                 },
             )
             current["rrf_score"] += float(weights.get("hybrid", 0.8)) * (1.0 / (k + float(idx)))
@@ -1216,25 +1367,47 @@ class ChatService:
                     "rrf_score": 0.0,
                     "hybrid_rank": None,
                     "relation_rank": idx,
+                    "visual_rank": None,
                     "is_relation_evidence": cls._is_relation_evidence_row(row),
+                    "is_visual_evidence": cls._is_visual_evidence_row(row),
                 },
             )
             current["rrf_score"] += float(weights.get("relation", 0.2)) * (1.0 / (k + float(idx)))
             current["relation_rank"] = idx
 
+        for idx, row in enumerate(visual_results or [], 1):
+            key = row_key(row, "v", idx)
+            current = rank_map.setdefault(
+                key,
+                {
+                    **row,
+                    "rrf_score": 0.0,
+                    "hybrid_rank": None,
+                    "relation_rank": None,
+                    "visual_rank": idx,
+                    "is_relation_evidence": cls._is_relation_evidence_row(row),
+                    "is_visual_evidence": cls._is_visual_evidence_row(row),
+                },
+            )
+            current["rrf_score"] += float(weights.get("visual", 0.15)) * (1.0 / (k + float(idx)))
+            current["visual_rank"] = idx
+
         fused = list(rank_map.values())
         for row in fused:
             bonus = 0.0
             is_rel = bool(row.get("is_relation_evidence"))
+            is_visual = bool(row.get("is_visual_evidence"))
             if preference == "relation":
                 bonus += 0.25 if is_rel else 0.0
             elif preference == "text":
-                bonus += 0.10 if not is_rel else 0.0
+                bonus += 0.24 if is_visual else 0.10 if not is_rel else 0.0
             else:  # mixed
-                bonus += 0.12 if is_rel else 0.06
+                bonus += 0.12 if is_rel else 0.10 if is_visual else 0.06
 
             if selected_profile in {"design", "ops"} and is_rel:
                 bonus += 0.08
+            if selected_profile == "design" and is_visual:
+                bonus += 0.14
             if selected_profile == "policy" and is_rel:
                 bonus -= 0.05
 
@@ -1253,14 +1426,17 @@ class ChatService:
         entities: List[str],
         top_k: int = 8,
         include_relation: bool = True,
+        include_visual: bool = False,
     ) -> List[Dict[str, Any]]:
         """
         并行检索：
         - hybrid（向量 + BM25）
         - relation（图/关系）
+        - visual（页面级视觉向量）
         然后统一融合重排。
         """
         enable_relation = bool(include_relation) and self._relation_enabled_for_profile(selected_profile)
+        enable_visual = bool(include_visual)
         hybrid_task = self.search_service.hybrid_search(
             db=db,
             user=user,
@@ -1280,17 +1456,40 @@ class ChatService:
             if enable_relation
             else None
         )
-
+        visual_task = (
+            visual_search_service.search_visual_pages(
+                db=db,
+                user=user,
+                query_text=search_query,
+                top_k=max(6, top_k),
+                selected_profile=selected_profile,
+            )
+            if enable_visual
+            else None
+        )
+        tasks: List[Any] = [hybrid_task]
         if relation_task is not None:
-            hybrid_results, relation_results = await asyncio.gather(hybrid_task, relation_task)
+            tasks.append(relation_task)
+        if visual_task is not None:
+            tasks.append(visual_task)
+        task_results = await asyncio.gather(*tasks)
+        hybrid_results = task_results[0]
+        offset = 1
+        if relation_task is not None:
+            relation_results = task_results[offset]
+            offset += 1
         else:
-            hybrid_results = await hybrid_task
             relation_results = []
+        if visual_task is not None:
+            visual_results = task_results[offset]
+        else:
+            visual_results = []
 
         fused = self._fuse_parallel_results(
             query_text=message,
             hybrid_results=hybrid_results or [],
             relation_results=relation_results or [],
+            visual_results=visual_results or [],
             selected_profile=selected_profile,
             top_k=top_k,
         )
@@ -1333,6 +1532,7 @@ class ChatService:
             entities=entities,
             top_k=8,
             include_relation=True,
+            include_visual=True,
         )
         search_results = self._apply_document_focus(
             search_results,
@@ -1567,6 +1767,7 @@ class ChatService:
                 entities=query_entities,
                 top_k=max(10, top_k),
                 include_relation=False,
+                include_visual=True,
             )
             search_results = self._apply_document_focus(
                 search_results,
@@ -1600,6 +1801,7 @@ class ChatService:
                 entities=query_entities,
                 top_k=max(8, top_k),
                 include_relation=include_relation,
+                include_visual=self._is_visual_diagram_request(message),
             )
             search_results = self._apply_document_focus(
                 search_results,
@@ -2046,13 +2248,18 @@ class ChatService:
                 return
             
             await emit_status("answer", "回答を生成しています...")
-            if graph_state:
-                context = str(graph_state.get("context") or "")
-                sources = list(graph_state.get("sources") or [])
-                if (not context) or (not sources):
-                    context, sources = self._format_search_results(search_results)
-            else:
-                context, sources = self._format_search_results(search_results)
+            context, sources, context_mode = self._build_context_package(
+                intent=intent,
+                message=message,
+                results=search_results,
+            )
+            logger.info(
+                "[context_selection] intent=%s mode=%s total_hits=%s selected_sources=%s",
+                intent,
+                context_mode,
+                len(search_results),
+                len(sources),
+            )
             
             history = await self.conversation_service.get_conversation_history(conversation_id, db=db)
             

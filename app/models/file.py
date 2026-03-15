@@ -43,6 +43,13 @@ class FileUpload(Base):
     relation_nodes = relationship("RelationNode", back_populates="file", cascade="all, delete-orphan")
     relation_edges = relationship("RelationEdge", back_populates="file", cascade="all, delete-orphan")
     experience_items = relationship("ExperienceItem", back_populates="file", cascade="all, delete-orphan")
+    document_units = relationship("DocumentUnit", back_populates="file", cascade="all, delete-orphan")
+    semantic_blocks = relationship("SemanticBlock", back_populates="file", cascade="all, delete-orphan")
+    parent_chunks = relationship("ParentChunk", back_populates="file", cascade="all, delete-orphan")
+    child_chunks = relationship("ChildChunk", back_populates="file", cascade="all, delete-orphan")
+    visual_pages = relationship("VisualPage", back_populates="file", cascade="all, delete-orphan")
+    visual_page_embeddings = relationship("VisualPageEmbedding", back_populates="file", cascade="all, delete-orphan")
+    visual_page_analyses = relationship("VisualPageAnalysis", back_populates="file", cascade="all, delete-orphan")
     
     def __repr__(self):
         return f"<FileUpload(id={self.id}, file_name={self.file_name}, status={self.status})>"
@@ -79,6 +86,81 @@ class ChunkInfo(Base):
     )
 
 
+class DocumentUnit(Base):
+
+    __tablename__ = "document_units"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    unit_type = Column(String(32), nullable=False, comment="原生单元类型：page/section/sheet/slide/image")
+    unit_key = Column(String(255), nullable=False, comment="文件内唯一单元键")
+    unit_name = Column(String(255), nullable=True, comment="单元显示名称")
+    unit_order = Column(Integer, nullable=True, comment="单元顺序")
+    page = Column(Integer, nullable=True, comment="页码")
+    sheet = Column(String(128), nullable=True, comment="sheet名称")
+    section = Column(String(255), nullable=True, comment="章节名称")
+    parent_unit_key = Column(String(255), nullable=True, comment="父单元键")
+    metadata_json = Column(Text, nullable=True, comment="扩展元数据JSON")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+
+    file = relationship("FileUpload", back_populates="document_units")
+
+    __table_args__ = (
+        UniqueConstraint("file_md5", "unit_key", name="uk_document_units_file_key"),
+        Index("idx_document_units_file", "file_md5"),
+        Index("idx_document_units_type", "unit_type"),
+        Index("idx_document_units_page", "page"),
+        Index("idx_document_units_sheet", "sheet"),
+    )
+
+
+class SemanticBlock(Base):
+
+    __tablename__ = "semantic_blocks"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    block_index = Column(Integer, nullable=False, comment="解析阶段block序号")
+    document_unit_key = Column(String(255), nullable=True, comment="所属原生单元键")
+    block_type = Column(String(64), nullable=False, comment="语义块类型")
+    source_parser = Column(String(64), nullable=True, comment="来源解析器")
+    file_type = Column(String(32), nullable=True, comment="文件类型")
+    page = Column(Integer, nullable=True, comment="页码")
+    sheet = Column(String(128), nullable=True, comment="sheet名称")
+    section = Column(String(255), nullable=True, comment="章节名称")
+    row_no = Column(Integer, nullable=True, comment="行号")
+    image_path = Column(String(255), nullable=True, comment="关联图片路径")
+    raw_text = Column(Text, nullable=True, comment="原始文本")
+    normalized_text = Column(Text, nullable=True, comment="清洗后文本")
+    structured_json = Column(Text, nullable=True, comment="结构化字段JSON")
+    quality_score = Column(Integer, nullable=False, default=0, comment="质量分0-100")
+    quality_status = Column(String(16), nullable=False, default="weak", comment="accepted/weak/rejected")
+    parser_confidence = Column(Integer, nullable=True, comment="解析置信度0-100")
+    validation_flags = Column(Text, nullable=True, comment="校验标签JSON")
+    metadata_json = Column(Text, nullable=True, comment="扩展元数据JSON")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+
+    file = relationship("FileUpload", back_populates="semantic_blocks")
+
+    __table_args__ = (
+        UniqueConstraint("file_md5", "block_index", name="uk_semantic_blocks_file_idx"),
+        Index("idx_semantic_blocks_file", "file_md5"),
+        Index("idx_semantic_blocks_unit", "document_unit_key"),
+        Index("idx_semantic_blocks_type", "block_type"),
+        Index("idx_semantic_blocks_quality", "quality_status"),
+    )
+
+
 class DocumentVector(Base):
     
     __tablename__ = "document_vectors"
@@ -96,6 +178,70 @@ class DocumentVector(Base):
 
     __table_args__ = (
         Index('idx_file_chunk_vectors', 'file_md5', 'chunk_id'),
+    )
+
+
+class ParentChunk(Base):
+
+    __tablename__ = "parent_chunks"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    parent_chunk_id = Column(Integer, nullable=False, comment="父chunk序号")
+    document_unit_key = Column(String(255), nullable=True, comment="所属原生单元键")
+    chunk_type = Column(String(64), nullable=True, comment="父chunk类型")
+    text_content = Column(Text, nullable=False, comment="父chunk文本")
+    quality_score = Column(Integer, nullable=False, default=0, comment="质量分0-100")
+    quality_status = Column(String(16), nullable=False, default="weak", comment="accepted/weak/rejected")
+    metadata_json = Column(Text, nullable=True, comment="扩展元数据JSON")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+
+    file = relationship("FileUpload", back_populates="parent_chunks")
+
+    __table_args__ = (
+        UniqueConstraint("file_md5", "parent_chunk_id", name="uk_parent_chunks_file_idx"),
+        Index("idx_parent_chunks_file", "file_md5"),
+        Index("idx_parent_chunks_unit", "document_unit_key"),
+        Index("idx_parent_chunks_quality", "quality_status"),
+    )
+
+
+class ChildChunk(Base):
+
+    __tablename__ = "child_chunks"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    child_chunk_id = Column(Integer, nullable=False, comment="子chunk序号")
+    parent_chunk_id = Column(Integer, nullable=True, comment="所属父chunk序号")
+    document_unit_key = Column(String(255), nullable=True, comment="所属原生单元键")
+    chunk_type = Column(String(64), nullable=True, comment="子chunk类型")
+    text_content = Column(Text, nullable=False, comment="子chunk文本")
+    quality_score = Column(Integer, nullable=False, default=0, comment="质量分0-100")
+    quality_status = Column(String(16), nullable=False, default="weak", comment="accepted/weak/rejected")
+    neighbor_prev_id = Column(Integer, nullable=True, comment="同父chunk前邻居子chunk")
+    neighbor_next_id = Column(Integer, nullable=True, comment="同父chunk后邻居子chunk")
+    metadata_json = Column(Text, nullable=True, comment="扩展元数据JSON")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+
+    file = relationship("FileUpload", back_populates="child_chunks")
+
+    __table_args__ = (
+        UniqueConstraint("file_md5", "child_chunk_id", name="uk_child_chunks_file_idx"),
+        Index("idx_child_chunks_file", "file_md5"),
+        Index("idx_child_chunks_parent", "file_md5", "parent_chunk_id"),
+        Index("idx_child_chunks_unit", "document_unit_key"),
+        Index("idx_child_chunks_quality", "quality_status"),
     )
 
 
@@ -196,6 +342,128 @@ class ImageBlock(Base):
         Index("idx_image_blocks_sheet", "sheet"),
         Index("idx_image_blocks_sheet_page", "sheet", "page"),
         Index("idx_image_blocks_anchor", "anchor_row", "anchor_col"),
+    )
+
+
+class VisualPage(Base):
+
+    __tablename__ = "visual_pages"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    document_unit_id = Column(
+        BIGINT_TYPE,
+        ForeignKey("document_units.id", ondelete="SET NULL"),
+        nullable=True,
+        comment="所属原生单元ID",
+    )
+    unit_type = Column(String(32), nullable=True, comment="原生单元类型：page/sheet/section/slide")
+    page = Column(Integer, nullable=True, comment="页码")
+    sheet = Column(String(128), nullable=True, comment="sheet名称")
+    section = Column(String(255), nullable=True, comment="章节名称")
+    page_label = Column(String(255), nullable=True, comment="页面显示标签")
+    image_path = Column(String(255), nullable=False, comment="页面图片对象路径")
+    image_width = Column(Integer, nullable=True, comment="图片宽")
+    image_height = Column(Integer, nullable=True, comment="图片高")
+    render_source = Column(String(64), nullable=True, comment="页面图生成来源")
+    render_version = Column(String(32), nullable=True, comment="页面图生成版本")
+    quality_status = Column(String(16), nullable=False, default="accepted", comment="accepted/weak/rejected")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment="更新时间")
+
+    file = relationship("FileUpload", back_populates="visual_pages")
+    document_unit = relationship("DocumentUnit")
+    embeddings = relationship("VisualPageEmbedding", back_populates="visual_page", cascade="all, delete-orphan")
+
+    __table_args__ = (
+        Index("idx_visual_pages_file", "file_md5"),
+        Index("idx_visual_pages_unit", "document_unit_id"),
+        Index("idx_visual_pages_sheet_page", "sheet", "page"),
+        Index("idx_visual_pages_render", "render_source"),
+        UniqueConstraint("file_md5", "image_path", name="uk_visual_pages_file_image"),
+    )
+
+
+class VisualPageEmbedding(Base):
+
+    __tablename__ = "visual_page_embeddings"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    visual_page_id = Column(
+        BIGINT_TYPE,
+        ForeignKey("visual_pages.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="视觉页面ID",
+    )
+    provider = Column(String(64), nullable=False, default="gemini", comment="向量提供方")
+    model_name = Column(String(128), nullable=False, comment="向量模型名")
+    embedding_dim = Column(Integer, nullable=True, comment="向量维度")
+    status = Column(String(32), nullable=False, default="pending_config", comment="pending_config/indexed/error/skipped")
+    es_doc_id = Column(String(255), nullable=True, comment="ES视觉索引文档ID")
+    error_message = Column(Text, nullable=True, comment="错误信息")
+    indexed_at = Column(DateTime, nullable=True, comment="索引时间")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment="更新时间")
+
+    file = relationship("FileUpload", back_populates="visual_page_embeddings")
+    visual_page = relationship("VisualPage", back_populates="embeddings")
+
+    __table_args__ = (
+        Index("idx_visual_page_embeddings_file", "file_md5"),
+        Index("idx_visual_page_embeddings_visual_page", "visual_page_id"),
+        Index("idx_visual_page_embeddings_status", "status"),
+        UniqueConstraint("visual_page_id", "provider", "model_name", name="uk_visual_page_embeddings_page_provider_model"),
+    )
+
+
+class VisualPageAnalysis(Base):
+
+    __tablename__ = "visual_page_analyses"
+
+    id = Column(BIGINT_TYPE, primary_key=True, autoincrement=True, comment="主键")
+    file_md5 = Column(
+        String(32),
+        ForeignKey("file_upload.file_md5", ondelete="CASCADE", onupdate="CASCADE"),
+        nullable=False,
+        comment="文件MD5",
+    )
+    visual_page_id = Column(
+        BIGINT_TYPE,
+        ForeignKey("visual_pages.id", ondelete="CASCADE"),
+        nullable=False,
+        comment="视觉页面ID",
+    )
+    provider = Column(String(64), nullable=False, default="openai", comment="分析提供方")
+    model_name = Column(String(128), nullable=False, comment="分析模型名")
+    prompt_version = Column(String(64), nullable=True, comment="提示词版本")
+    raw_payload_path = Column(String(255), nullable=True, comment="原始VLM结果对象路径")
+    structured_json = Column(Text, nullable=True, comment="结构化结果JSON")
+    text_projection = Column(Text, nullable=True, comment="检索用文本投影")
+    quality_score = Column(Integer, nullable=False, default=0, comment="质量分0-100")
+    quality_status = Column(String(16), nullable=False, default="weak", comment="accepted/weak/rejected")
+    validation_flags = Column(Text, nullable=True, comment="校验标签JSON")
+    created_at = Column(DateTime, nullable=False, server_default=func.now(), comment="创建时间")
+    updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now(), comment="更新时间")
+
+    file = relationship("FileUpload", back_populates="visual_page_analyses")
+    visual_page = relationship("VisualPage")
+
+    __table_args__ = (
+        Index("idx_visual_page_analyses_file", "file_md5"),
+        Index("idx_visual_page_analyses_visual_page", "visual_page_id"),
+        Index("idx_visual_page_analyses_quality", "quality_status"),
+        UniqueConstraint("visual_page_id", "provider", "model_name", name="uk_visual_page_analyses_page_provider_model"),
     )
 
 

@@ -48,12 +48,12 @@ class IntentRouterService:
             intent = "statistics_query"
         elif is_schedule:
             intent = "schedule_query"
-        elif is_timeline:
-            intent = "timeline_query"
         elif is_layout:
             intent = "layout_query"
         elif is_flow:
             intent = "flow_query"
+        elif is_timeline:
+            intent = "timeline_query"
         else:
             intent = "fact_lookup"
 

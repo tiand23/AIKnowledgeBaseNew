@@ -15,6 +15,7 @@ from sqlalchemy import delete, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.file import FileUpload, RelationEdge, RelationNode
+from app.services.graph_store_service import GraphEdgeFact, GraphNodeFact, graph_store_service
 from app.models.user import User, UserRole
 from app.services.permission_service import permission_service
 from app.utils.logger import get_logger
@@ -116,6 +117,47 @@ class RelationSearchService:
     @staticmethod
     def _normalize_node_key(name: str) -> str:
         return re.sub(r"\s+", "", (name or "").strip().lower())
+
+    @staticmethod
+    def _build_graph_fact_payload(
+        file_md5: str,
+        node_map: Dict[str, RelationNode],
+        edge_models: List[RelationEdge],
+    ) -> tuple[List[GraphNodeFact], List[GraphEdgeFact]]:
+        node_facts = [
+            GraphNodeFact(
+                file_md5=file_md5,
+                node_key=node.node_key,
+                node_name=node.node_name,
+                node_type=node.node_type,
+                page=node.page,
+                evidence_text=node.evidence_text,
+                source_parser="relation_search_service",
+                quality_status="accepted",
+            )
+            for node in node_map.values()
+        ]
+        node_id_to_key = {node.id: node.node_key for node in node_map.values()}
+        edge_facts: List[GraphEdgeFact] = []
+        for edge in edge_models:
+            src_key = node_id_to_key.get(edge.src_node_id)
+            dst_key = node_id_to_key.get(edge.dst_node_id)
+            if not src_key or not dst_key:
+                continue
+            edge_facts.append(
+                GraphEdgeFact(
+                    file_md5=file_md5,
+                    src_node_key=src_key,
+                    dst_node_key=dst_key,
+                    relation_type=edge.relation_type,
+                    relation_text=edge.relation_text,
+                    page=edge.page,
+                    evidence_text=edge.evidence_text,
+                    source_parser="relation_search_service",
+                    quality_status="accepted",
+                )
+            )
+        return node_facts, edge_facts
 
     @staticmethod
     def _clean_line(line: str) -> str:
@@ -351,8 +393,25 @@ class RelationSearchService:
             db.add_all(edge_models)
             await db.flush()
 
+        graph_node_facts, graph_edge_facts = RelationSearchService._build_graph_fact_payload(
+            file_md5=file_md5,
+            node_map=node_map,
+            edge_models=edge_models,
+        )
+        graph_stats = await graph_store_service.sync_relation_facts(
+            db=db,
+            file_md5=file_md5,
+            nodes=graph_node_facts,
+            edges=graph_edge_facts,
+        )
+
         logger.info(
-            f"关系索引构建完成: file={file_name}, file_md5={file_md5}, nodes={len(node_map)}, edges={len(edge_models)}"
+            "关系索引构建完成: file=%s, file_md5=%s, nodes=%s, edges=%s, graph=%s",
+            file_name,
+            file_md5,
+            len(node_map),
+            len(edge_models),
+            graph_stats,
         )
         return {"nodes": len(node_map), "edges": len(edge_models)}
 

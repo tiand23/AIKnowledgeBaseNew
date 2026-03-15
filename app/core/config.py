@@ -134,6 +134,10 @@ class Settings(BaseSettings):
     ES_PASSWORD: str = ""
     ES_VERIFY_CERTS: bool = False
     ES_DEFAULT_INDEX: str = "default"
+    ES_VISUAL_INDEX: str = "visual_pages"
+    GRAPH_BACKEND: str = "postgres_relational"
+    POSTGRES_AGE_ENABLED: bool = False
+    POSTGRES_AGE_GRAPH_NAME: str = "knowledge_graph"
     
     KAFKA_BOOTSTRAP_SERVERS: str
     KAFKA_DEFAULT_TOPIC: str = "default"
@@ -153,6 +157,16 @@ class Settings(BaseSettings):
     OPENAI_VISION_MODEL: str = "gpt-4o-mini"
     OPENAI_VISION_MAX_TOKENS: int = 1200
     OPENAI_VISION_MAX_IMAGES_PER_FILE: int = 10
+
+    GEMINI_VISUAL_EMBEDDING_ENABLED: bool = False
+    GEMINI_VISUAL_EMBEDDING_BACKEND: str = "auto"
+    GEMINI_VISUAL_EMBEDDING_MODEL: str = "multimodalembedding@001"
+    GEMINI_VISUAL_EMBEDDING_DIMENSIONS: int = 1408
+    GEMINI_VISUAL_EMBEDDING_PROJECT_ID: str = ""
+    GEMINI_VISUAL_EMBEDDING_LOCATION: str = "us-central1"
+    GEMINI_VISUAL_EMBEDDING_TIMEOUT_SEC: int = 60
+    GEMINI_VISUAL_EMBEDDING_CONTEXTUAL_TEXT_ENABLED: bool = False
+    GEMINI_API_KEY: str = ""
     
     CONVERSATION_MAX_MESSAGES: int = 20
     CONVERSATION_TTL_DAYS: int = 7

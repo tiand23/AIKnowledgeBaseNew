@@ -13,6 +13,7 @@ import re
 from typing import Dict, List, Any, Tuple
 
 from app.services.intent_keywords import (
+    get_flow_query_keys,
     get_generic_topic_terms,
     get_layout_query_keys,
 )
@@ -23,6 +24,12 @@ class QueryUnderstandingService:
 
     _HONORIFICS_RE = re.compile(r"(さん|様|氏|ちゃん|くん)$")
     _PARTICLE_TAIL_RE = re.compile(r"(の|は|が|を|に|で|と|って).*$")
+    _GENERIC_FLOW_PRESENTATION_RE = re.compile(
+        r"(画面遷移図|遷移図|画面遷移|各画面間の関係|画面間の関係|接続関係|関係を教えて|図を教えて|図お願い|見せて)"
+    )
+    _GENERIC_LAYOUT_PRESENTATION_RE = re.compile(
+        r"(画面レイアウト|レイアウト|画面構成|画面を見せて|画面を教えて)"
+    )
 
     def understand(self, query: str, profile_terms: str = "") -> Dict[str, object]:
         text = (query or "").strip()
@@ -40,6 +47,13 @@ class QueryUnderstandingService:
         ][:4]
 
         rewritten = normalized
+        rewritten = self._rewrite_abstract_query(
+            intent=intent,
+            query=text,
+            normalized=rewritten,
+            entities=entities,
+            must_terms=must_terms,
+        )
         if profile_terms and profile_terms.strip() and profile_terms.strip() not in rewritten:
             rewritten = f"{rewritten} {profile_terms.strip()}"
         if intent == "schedule_query":
@@ -50,6 +64,10 @@ class QueryUnderstandingService:
             layout_terms = " " + " ".join(sorted(get_layout_query_keys()))
             if layout_terms.strip() not in rewritten:
                 rewritten = f"{rewritten}{layout_terms}"
+        if intent == "flow_query":
+            flow_terms = " " + " ".join(sorted(get_flow_query_keys()))
+            if flow_terms.strip() not in rewritten:
+                rewritten = f"{rewritten}{flow_terms}"
 
         return {
             "intent": intent,
@@ -131,6 +149,28 @@ class QueryUnderstandingService:
         t = self._PARTICLE_TAIL_RE.sub("", t)
         t = re.sub(r"[\s\-_|\u3000]+", "", t)
         return t.strip()
+
+    def _rewrite_abstract_query(
+        self,
+        intent: str,
+        query: str,
+        normalized: str,
+        entities: List[str],
+        must_terms: List[str],
+    ) -> str:
+        text = (query or "").strip()
+        rewritten = (normalized or "").strip()
+        has_specific_anchor = bool(must_terms or entities)
+
+        if intent == "flow_query" and not has_specific_anchor:
+            if self._GENERIC_FLOW_PRESENTATION_RE.search(text):
+                return "画面遷移図にある各画面の遷移関係を一覧で教えてください"
+
+        if intent == "layout_query" and not has_specific_anchor:
+            if self._GENERIC_LAYOUT_PRESENTATION_RE.search(text):
+                return "画面レイアウトにある主要な構成要素と表示項目を教えてください"
+
+        return rewritten
 
 
 query_understanding_service = QueryUnderstandingService()

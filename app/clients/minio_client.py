@@ -85,6 +85,23 @@ class MinioClient:
         safe_sheet = (sheet_name or "sheet").replace("/", "_").replace("\\", "_").replace(" ", "_")
         safe_ext = (ext or "png").lower().strip(".")
         return f"documents/{user_id}/images/{file_md5}/{safe_sheet}_{image_index}.{safe_ext}"
+
+    @staticmethod
+    def build_document_analysis_path(
+        user_id: int,
+        file_md5: str,
+        analysis_scope: str,
+        analysis_name: str,
+        ext: str = "json",
+    ) -> str:
+        """
+        生成文档分析结果在 MinIO 中的对象路径。
+        约定：/documents/{userId}/analysis/{fileMd5}/{scope}/{name}.{ext}
+        """
+        safe_scope = (analysis_scope or "analysis").replace("/", "_").replace("\\", "_").replace(" ", "_")
+        safe_name = (analysis_name or "result").replace("/", "_").replace("\\", "_").replace(" ", "_")
+        safe_ext = (ext or "json").lower().strip(".")
+        return f"documents/{user_id}/analysis/{file_md5}/{safe_scope}/{safe_name}.{safe_ext}"
     
     def upload_file(
         self,

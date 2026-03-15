@@ -91,6 +91,152 @@ export type SourceDetailData = {
   previewRows: EsPreviewItem[];
 };
 
+export type StructuredOverviewFileInfo = {
+  fileMd5: string;
+  fileName: string;
+  totalSize: number;
+  status: number;
+  userId: string;
+  orgTagName?: string | null;
+  kbProfile?: string | null;
+  isPublic: boolean;
+  createdAt?: string;
+  mergedAt?: string | null;
+  vectorCount: number;
+  tableRowCount: number;
+  imageBlockCount: number;
+  relationNodeCount: number;
+  relationEdgeCount: number;
+  documentUnitCount: number;
+  semanticBlockCount: number;
+  parentChunkCount: number;
+  childChunkCount: number;
+  visualPageCount: number;
+  visualEmbeddingCount: number;
+  visualIndexedCount: number;
+  acceptedBlockCount: number;
+  weakBlockCount: number;
+  rejectedBlockCount: number;
+};
+
+export type StructuredDocumentUnitItem = {
+  unitType: string;
+  unitKey: string;
+  unitName?: string | null;
+  unitOrder?: number | null;
+  page?: number | null;
+  sheet?: string | null;
+  section?: string | null;
+  parentUnitKey?: string | null;
+};
+
+export type StructuredSemanticBlockItem = {
+  blockIndex: number;
+  documentUnitKey?: string | null;
+  blockType: string;
+  sourceParser?: string | null;
+  page?: number | null;
+  sheet?: string | null;
+  section?: string | null;
+  rowNo?: number | null;
+  qualityScore: number;
+  qualityStatus: string;
+  parserConfidence?: number | null;
+  validationFlags: string[];
+  textPreview: string;
+  imageUrl?: string | null;
+};
+
+export type StructuredParentChunkItem = {
+  parentChunkId: number;
+  documentUnitKey?: string | null;
+  chunkType?: string | null;
+  qualityScore: number;
+  qualityStatus: string;
+  textPreview: string;
+};
+
+export type StructuredChildChunkItem = {
+  childChunkId: number;
+  parentChunkId?: number | null;
+  documentUnitKey?: string | null;
+  chunkType?: string | null;
+  qualityScore: number;
+  qualityStatus: string;
+  neighborPrevId?: number | null;
+  neighborNextId?: number | null;
+  textPreview: string;
+};
+
+export type StructuredImageItem = {
+  page?: number | null;
+  sheet?: string | null;
+  sourceParser?: string | null;
+  imageUrl: string;
+  imageWidth?: number | null;
+  imageHeight?: number | null;
+  matchMode?: string | null;
+  matchConfidence?: number | null;
+};
+
+export type StructuredVisualPageItem = {
+  visualPageId: number;
+  documentUnitId?: number | null;
+  unitType?: string | null;
+  page?: number | null;
+  sheet?: string | null;
+  section?: string | null;
+  pageLabel?: string | null;
+  renderSource?: string | null;
+  renderVersion?: string | null;
+  qualityStatus: string;
+  visualEmbeddingStatus?: string | null;
+  visualEmbeddingProvider?: string | null;
+  visualEmbeddingModel?: string | null;
+  visualEmbeddingDim?: number | null;
+  visualEmbeddingError?: string | null;
+  visualIndexed: boolean;
+  visualIndexDocId?: string | null;
+  imageUrl: string;
+  imageWidth?: number | null;
+  imageHeight?: number | null;
+};
+
+export type StructuredRelationNodeItem = {
+  nodeId: number;
+  nodeKey: string;
+  nodeName: string;
+  nodeType?: string | null;
+  page?: number | null;
+  evidenceText?: string | null;
+};
+
+export type StructuredRelationEdgeItem = {
+  edgeId: number;
+  srcNodeId: number;
+  srcNodeName: string;
+  dstNodeId: number;
+  dstNodeName: string;
+  relationType: string;
+  relationText?: string | null;
+  page?: number | null;
+  evidenceText?: string | null;
+};
+
+export type StructuredFileDetailData = {
+  fileMd5: string;
+  fileName: string;
+  originalUrl?: string | null;
+  documentUnits: StructuredDocumentUnitItem[];
+  semanticBlocks: StructuredSemanticBlockItem[];
+  parentChunks: StructuredParentChunkItem[];
+  childChunks: StructuredChildChunkItem[];
+  images: StructuredImageItem[];
+  visualPages: StructuredVisualPageItem[];
+  relationNodes: StructuredRelationNodeItem[];
+  relationEdges: StructuredRelationEdgeItem[];
+};
+
 export type ProfileOption = {
   profile_id: string;
   name: string;

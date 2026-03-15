@@ -522,6 +522,14 @@ class FileService:
                     )
                 except Exception as e:
                     logger.warning(f"Elasticsearch删除失败: {e}")
+
+            try:
+                await es_client.delete_by_query(
+                    index=settings.ES_VISUAL_INDEX,
+                    query={"term": {"file_md5": file_md5}},
+                )
+            except Exception as e:
+                logger.warning(f"视觉索引删除失败: {e}")
             
             if file_record.status >= FILE_STATUS_MERGED:  # Already merged (processing/done/failed included)
                 file_path = minio_client.build_document_path(file_record.user_id, file_record.file_name)

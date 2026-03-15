@@ -26,3 +26,6 @@ frontend/dist/
 # IDE/editor
 .idea/
 .vscode/
+
+# Local cloud credentials
+.secrets/

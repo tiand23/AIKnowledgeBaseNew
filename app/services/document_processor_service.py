@@ -29,11 +29,17 @@ from app.clients.minio_client import minio_client
 from app.clients.redis_client import redis_client
 from app.core.config import settings
 from app.models.file import (
+    ChildChunk,
     DocumentVector,
+    DocumentUnit,
     ChunkSource,
     FileUpload,
     ImageBlock,
+    ParentChunk,
+    SemanticBlock,
     TableRow,
+    VisualPage,
+    VisualPageAnalysis,
     FILE_STATUS_DONE,
     FILE_STATUS_FAILED,
     FILE_STATUS_PROCESSING,
@@ -45,6 +51,7 @@ from app.services.profile_service import profile_service
 from app.services.profile_service import ProfileStrategy
 from app.services.relation_search_service import relation_search_service
 from app.services.search_service import search_service
+from app.services.visual_search_service import visual_search_service
 from app.utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -281,6 +288,274 @@ class DocumentProcessorService:
         if meta_path:
             return meta_path
         return None
+
+    @staticmethod
+    def _quality_status_from_score(score: int) -> str:
+        if score >= 80:
+            return "accepted"
+        if score >= 60:
+            return "weak"
+        return "rejected"
+
+    def _infer_document_unit(self, block: Dict[str, Any]) -> Dict[str, Any]:
+        file_type = str(block.get("file_type") or "").strip().lower()
+        page = block.get("page")
+        sheet = self._clean_text(block.get("sheet"))
+        section = self._clean_text(block.get("section"))
+        block_type = str(block.get("type") or "").strip().lower()
+
+        if file_type in {"xlsx", "xlsm", "xltx", "xltm"}:
+            if sheet or section:
+                unit_name = sheet or section or "workbook"
+                return {
+                    "unit_type": "sheet",
+                    "unit_key": f"sheet:{unit_name}",
+                    "unit_name": unit_name,
+                    "unit_order": None,
+                }
+            if page is not None:
+                return {
+                    "unit_type": "page",
+                    "unit_key": f"page:{int(page)}",
+                    "unit_name": f"page_{int(page)}",
+                    "unit_order": int(page),
+                }
+            return {
+                "unit_type": "sheet",
+                "unit_key": "sheet:workbook",
+                "unit_name": "workbook",
+                "unit_order": None,
+            }
+        if file_type == "pdf":
+            if page is not None:
+                return {
+                    "unit_type": "page",
+                    "unit_key": f"page:{int(page)}",
+                    "unit_name": f"page_{int(page)}",
+                    "unit_order": int(page),
+                }
+            if section:
+                return {
+                    "unit_type": "section",
+                    "unit_key": f"section:{section}",
+                    "unit_name": section,
+                    "unit_order": None,
+                }
+        if file_type == "docx":
+            if section:
+                return {
+                    "unit_type": "section",
+                    "unit_key": f"section:{section}",
+                    "unit_name": section,
+                    "unit_order": None,
+                }
+            return {
+                "unit_type": "section",
+                "unit_key": "section:document",
+                "unit_name": "document",
+                "unit_order": None,
+            }
+        if "image" in block_type:
+            key = f"image:{sheet or page or block.get('block_index') or 0}"
+            return {
+                "unit_type": "image",
+                "unit_key": key,
+                "unit_name": key,
+                "unit_order": int(page) if page is not None else None,
+            }
+        return {
+            "unit_type": "document",
+            "unit_key": "document:root",
+            "unit_name": "root",
+            "unit_order": None,
+        }
+
+    def _score_block_quality(self, block: Dict[str, Any]) -> Tuple[int, List[str], int]:
+        block_type = str(block.get("type") or "").strip().lower()
+        parser_name = str(block.get("source_parser") or "").strip().lower()
+        text = self._clean_text(block.get("text"))
+        row_json = block.get("row_json") if isinstance(block.get("row_json"), dict) else {}
+        image_path = self._clean_text(block.get("image_path"))
+        page = block.get("page")
+        sheet = self._clean_text(block.get("sheet"))
+        section = self._clean_text(block.get("section"))
+        flags: List[str] = []
+
+        format_score = 0
+        trace_score = 0
+        consistency_score = 0
+        business_score = 0
+
+        if text:
+            format_score += 18
+            if len(text) >= 8:
+                format_score += 7
+        else:
+            flags.append("empty_text")
+
+        has_locator = bool(sheet or section or page is not None)
+        if has_locator:
+            trace_score += 16
+        else:
+            flags.append("missing_locator")
+        if image_path:
+            trace_score += 9
+        elif self._is_vlm_parser(parser_name) or "image" in block_type:
+            flags.append("missing_image_binding")
+
+        if row_json:
+            consistency_score += 14
+        if block_type == "diagram_edge":
+            src = self._clean_text(row_json.get("src")) if row_json else ""
+            dst = self._clean_text(row_json.get("dst")) if row_json else ""
+            if src and dst and src != dst:
+                consistency_score += 16
+                business_score += 12
+            else:
+                flags.append("invalid_edge")
+        elif block_type == "diagram_node":
+            name = self._clean_text(row_json.get("name")) if row_json else text.replace("[diagram_node]", "", 1).strip()
+            if name:
+                consistency_score += 12
+                business_score += 10
+            else:
+                flags.append("missing_node_name")
+        elif block_type == "schedule_row":
+            task = self._clean_text(row_json.get("task")) if row_json else ""
+            start_label = self._clean_text(row_json.get("period_start")) if row_json else ""
+            end_label = self._clean_text(row_json.get("period_end")) if row_json else ""
+            if task:
+                consistency_score += 10
+            else:
+                flags.append("missing_schedule_task")
+            if start_label and end_label:
+                business_score += 15
+            else:
+                flags.append("missing_schedule_period")
+        elif "table" in block_type:
+            non_empty = sum(1 for v in row_json.values() if self._clean_text(v)) if row_json else 0
+            if non_empty >= 2:
+                consistency_score += 15
+                business_score += 10
+            elif non_empty == 1:
+                consistency_score += 8
+                flags.append("sparse_table_row")
+            else:
+                flags.append("empty_table_row")
+        elif block_type in {"diagram_page", "diagram_summary"}:
+            if image_path:
+                business_score += 15
+            if text:
+                consistency_score += 10
+        else:
+            business_score += 10 if text else 0
+            consistency_score += 8 if has_locator else 0
+
+        score = max(0, min(100, format_score + trace_score + consistency_score + business_score))
+        if "missing_image_binding" in flags:
+            score = min(score, 55)
+        if "invalid_edge" in flags or "empty_text" in flags:
+            score = min(score, 45)
+        parser_confidence = max(0, min(100, int(round(score))))
+        return score, flags, parser_confidence
+
+    def _enrich_blocks(self, blocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        enriched: List[Dict[str, Any]] = []
+        for block in blocks or []:
+            item = dict(block)
+            unit = self._infer_document_unit(item)
+            score, flags, parser_confidence = self._score_block_quality(item)
+            item["document_unit_type"] = unit["unit_type"]
+            item["document_unit_key"] = unit["unit_key"]
+            item["document_unit_name"] = unit["unit_name"]
+            item["document_unit_order"] = unit["unit_order"]
+            item["quality_score"] = score
+            item["quality_status"] = self._quality_status_from_score(score)
+            item["validation_flags"] = flags
+            item["parser_confidence"] = parser_confidence
+            if isinstance(item.get("structured_fields"), dict):
+                item["structured_fields"] = dict(item.get("structured_fields") or {})
+            elif isinstance(item.get("row_json"), dict):
+                item["structured_fields"] = dict(item.get("row_json") or {})
+            else:
+                item["structured_fields"] = {}
+            enriched.append(item)
+        return enriched
+
+    def _build_parent_chunks(self, blocks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        grouped: Dict[str, List[Dict[str, Any]]] = {}
+        ordered_keys: List[str] = []
+        for block in blocks or []:
+            unit_key = str(block.get("document_unit_key") or "document:root")
+            if unit_key not in grouped:
+                grouped[unit_key] = []
+                ordered_keys.append(unit_key)
+            grouped[unit_key].append(block)
+
+        parent_chunks: List[Dict[str, Any]] = []
+        for parent_chunk_id, unit_key in enumerate(ordered_keys):
+            items = grouped.get(unit_key) or []
+            parts = [self._clean_text(x.get("text")) for x in items if self._clean_text(x.get("text"))]
+            if not parts:
+                continue
+            quality_scores = [int(x.get("quality_score") or 0) for x in items]
+            min_status = "accepted"
+            if any(str(x.get("quality_status") or "") == "rejected" for x in items):
+                min_status = "weak"
+            elif any(str(x.get("quality_status") or "") == "weak" for x in items):
+                min_status = "weak"
+            parent_chunks.append(
+                {
+                    "parent_chunk_id": parent_chunk_id,
+                    "document_unit_key": unit_key,
+                    "chunk_type": f"{items[0].get('document_unit_type')}_context",
+                    "text": self._clean_text("\n\n".join(parts)),
+                    "quality_score": int(round(sum(quality_scores) / max(1, len(quality_scores)))),
+                    "quality_status": min_status,
+                    "metadata": {
+                        "document_unit_type": items[0].get("document_unit_type"),
+                        "document_unit_name": items[0].get("document_unit_name"),
+                        "block_indexes": [int(x.get("block_index") or 0) for x in items],
+                        "source_parsers": sorted({str(x.get("source_parser") or "") for x in items if x.get("source_parser")}),
+                    },
+                }
+            )
+        return parent_chunks
+
+    def _build_child_chunks(
+        self,
+        legacy_chunks: List[Dict[str, Any]],
+        parent_chunks: List[Dict[str, Any]],
+    ) -> List[Dict[str, Any]]:
+        parent_map = {str(x.get("document_unit_key") or ""): x for x in parent_chunks}
+        child_chunks: List[Dict[str, Any]] = []
+        for idx, chunk in enumerate(legacy_chunks):
+            meta = chunk.get("metadata") or {}
+            unit_key = str(meta.get("document_unit_key") or "document:root")
+            parent = parent_map.get(unit_key)
+            child_chunks.append(
+                {
+                    "child_chunk_id": int(chunk.get("chunk_id") or idx),
+                    "parent_chunk_id": parent.get("parent_chunk_id") if parent else None,
+                    "document_unit_key": unit_key,
+                    "chunk_type": meta.get("chunk_type"),
+                    "text": self._clean_text(chunk.get("text")),
+                    "quality_score": int(meta.get("quality_score") or (parent.get("quality_score") if parent else 0) or 0),
+                    "quality_status": str(meta.get("quality_status") or (parent.get("quality_status") if parent else "weak")),
+                    "metadata": dict(meta),
+                }
+            )
+        for i, row in enumerate(child_chunks):
+            parent_id = row.get("parent_chunk_id")
+            prev_id = None
+            next_id = None
+            if i > 0 and child_chunks[i - 1].get("parent_chunk_id") == parent_id:
+                prev_id = child_chunks[i - 1].get("child_chunk_id")
+            if i + 1 < len(child_chunks) and child_chunks[i + 1].get("parent_chunk_id") == parent_id:
+                next_id = child_chunks[i + 1].get("child_chunk_id")
+            row["neighbor_prev_id"] = prev_id
+            row["neighbor_next_id"] = next_id
+        return child_chunks
 
     def _parse_docx_blocks(self, file_data: bytes, file_name: str) -> List[Dict[str, Any]]:
         blocks: List[Dict[str, Any]] = []
@@ -1557,6 +1832,161 @@ class DocumentProcessorService:
             "confidence": confidence,
         }
 
+    def _build_vlm_text_projection(self, normalized: Dict[str, Any]) -> str:
+        parts: List[str] = []
+        page_id = self._clean_text(normalized.get("page_id"))
+        page_name = self._clean_text(normalized.get("page_name"))
+        diagram_type = self._clean_text(normalized.get("diagram_type"))
+        summary = self._clean_text(normalized.get("summary_text"))
+        nodes = [self._clean_text(x) for x in (normalized.get("nodes") or []) if self._clean_text(x)]
+        edges = [
+            f"{self._clean_text(x.get('src'))}->{self._clean_text(x.get('dst'))}"
+            for x in (normalized.get("edges") or [])
+            if self._clean_text(x.get("src")) and self._clean_text(x.get("dst"))
+        ]
+        if page_id:
+            parts.append(f"page_id={page_id}")
+        if page_name:
+            parts.append(f"page_name={page_name}")
+        if diagram_type:
+            parts.append(f"diagram_type={diagram_type}")
+        if summary:
+            parts.append(f"summary={summary}")
+        if nodes:
+            parts.append(f"nodes={', '.join(nodes[:20])}")
+        if edges:
+            parts.append(f"edges={'; '.join(edges[:20])}")
+        return self._clean_text("\n".join(parts))
+
+    def _score_vlm_analysis(
+        self,
+        normalized: Dict[str, Any],
+        image_path: Optional[str],
+    ) -> Tuple[int, str, List[str]]:
+        flags: List[str] = []
+        score = 0
+
+        page_id = self._clean_text(normalized.get("page_id"))
+        page_name = self._clean_text(normalized.get("page_name"))
+        summary = self._clean_text(normalized.get("summary_text"))
+        nodes = [self._clean_text(x) for x in (normalized.get("nodes") or []) if self._clean_text(x)]
+        edges = normalized.get("edges") or []
+        confidence = self._coerce_confidence(normalized.get("confidence"), default=0.0)
+
+        if image_path:
+            score += 25
+        else:
+            flags.append("missing_image_path")
+
+        if page_id or page_name:
+            score += 20
+        else:
+            flags.append("missing_page_identity")
+
+        if summary:
+            score += 20
+        else:
+            flags.append("missing_summary")
+
+        if nodes:
+            score += min(20, 5 + len(nodes))
+        if edges:
+            score += min(15, 5 + len(edges) * 2)
+        if not nodes and not edges:
+            flags.append("sparse_structure")
+
+        score += int(round(confidence * 20))
+        score = min(100, score)
+
+        if not image_path or score < 60:
+            status = "rejected"
+        elif score >= 80 and (summary or nodes or edges):
+            status = "accepted"
+        else:
+            status = "weak"
+
+        return score, status, flags
+
+    async def _persist_visual_page_analyses(
+        self,
+        db: Any,
+        *,
+        file_md5: str,
+        user_id: int,
+        analyses: List[Dict[str, Any]],
+    ) -> None:
+        await db.execute(VisualPageAnalysis.__table__.delete().where(VisualPageAnalysis.file_md5 == file_md5))
+        if not analyses:
+            return
+
+        result = await db.execute(select(VisualPage).where(VisualPage.file_md5 == file_md5))
+        visual_pages = result.scalars().all()
+        visual_page_by_path = {
+            self._clean_text(row.image_path): row
+            for row in visual_pages
+            if self._clean_text(row.image_path)
+        }
+
+        persisted = 0
+        skipped = 0
+        for idx, analysis in enumerate(analyses, start=1):
+            image_path = self._clean_text(analysis.get("image_path"))
+            visual_page = visual_page_by_path.get(image_path)
+            if not visual_page:
+                skipped += 1
+                continue
+
+            raw_payload = analysis.get("raw_payload") if isinstance(analysis.get("raw_payload"), dict) else {}
+            raw_bytes = json.dumps(raw_payload, ensure_ascii=False).encode("utf-8")
+            analysis_scope = str(analysis.get("analysis_scope") or "vlm")
+            analysis_name = self._clean_text(analysis.get("analysis_name")) or f"analysis_{visual_page.id}_{idx}"
+            object_path = minio_client.build_document_analysis_path(
+                user_id=user_id,
+                file_md5=file_md5,
+                analysis_scope=analysis_scope,
+                analysis_name=analysis_name,
+                ext="json",
+            )
+            uploaded = minio_client.upload_bytes(
+                bucket_name=settings.MINIO_DEFAULT_BUCKET,
+                object_name=object_path,
+                data=raw_bytes,
+                content_type="application/json",
+            )
+            if not uploaded:
+                logger.warning(
+                    "VLM分析原始结果上传失败: file_md5=%s, visual_page_id=%s, scope=%s",
+                    file_md5,
+                    visual_page.id,
+                    analysis_scope,
+                )
+                object_path = None
+
+            db.add(
+                VisualPageAnalysis(
+                    file_md5=file_md5,
+                    visual_page_id=visual_page.id,
+                    provider=str(analysis.get("provider") or "openai"),
+                    model_name=str(analysis.get("model_name") or settings.OPENAI_VISION_MODEL),
+                    prompt_version=str(analysis.get("prompt_version") or "diagram_v1"),
+                    raw_payload_path=object_path,
+                    structured_json=json.dumps(analysis.get("normalized") or {}, ensure_ascii=False),
+                    text_projection=self._clean_text(analysis.get("text_projection")),
+                    quality_score=int(analysis.get("quality_score") or 0),
+                    quality_status=str(analysis.get("quality_status") or "weak"),
+                    validation_flags=json.dumps(list(analysis.get("validation_flags") or []), ensure_ascii=False),
+                )
+            )
+            persisted += 1
+
+        logger.info(
+            "视觉页面分析入库完成: file_md5=%s, analyses=%s, persisted=%s, skipped=%s",
+            file_md5,
+            len(analyses),
+            persisted,
+            skipped,
+        )
+
     def _extract_office_media_images(
         self,
         file_data: bytes,
@@ -1626,21 +2056,22 @@ class DocumentProcessorService:
         ext: str,
         start_index: int,
         max_images: int = 3,
-    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         对 Office 文档内嵌图片执行 VLM 结构化抽取，产出 diagram_* blocks。
         """
         if not settings.OPENAI_VISION_ENABLED:
-            return [], []
+            return [], [], []
         if not settings.OPENAI_API_KEY:
-            return [], []
+            return [], [], []
 
         images = self._extract_office_media_images(file_data=file_data, ext=ext, max_images=max_images)
         if not images:
-            return [], []
+            return [], [], []
 
         blocks: List[Dict[str, Any]] = []
         image_blocks: List[Dict[str, Any]] = []
+        analyses: List[Dict[str, Any]] = []
         block_idx = start_index
         for img_idx, img in enumerate(images, 1):
             try:
@@ -1707,6 +2138,8 @@ class DocumentProcessorService:
                     payload,
                     default_page_name=img.get("name"),
                 )
+                text_projection = self._build_vlm_text_projection(normalized)
+                quality_score, quality_status, validation_flags = self._score_vlm_analysis(normalized, object_path)
                 logger.info(
                     "VLM_OVERVIEW_FULL: file=%s, image=%s, scope=office_media, diagram_overview=%s, process_description=%s, relationships=%s, evidence_texts=%s",
                     file_name,
@@ -1726,6 +2159,12 @@ class DocumentProcessorService:
                 page_name = self._clean_text(normalized.get("page_name")) or self._clean_text(img.get("name")) or "unknown"
                 diagram_type = self._clean_text(normalized.get("diagram_type")) or "unknown"
                 summary = self._clean_text(normalized.get("summary_text"))
+                base_structured = {
+                    "page_id": page_id,
+                    "page_name": page_name,
+                    "diagram_type": diagram_type,
+                    "confidence": self._coerce_confidence(normalized.get("confidence"), default=0.65),
+                }
                 blocks.append(
                     {
                         "block_index": block_idx,
@@ -1741,6 +2180,7 @@ class DocumentProcessorService:
                         "file_type": ext,
                         "file_name": file_name,
                         "image_path": object_path,
+                        "structured_fields": dict(base_structured),
                     }
                 )
                 block_idx += 1
@@ -1757,6 +2197,31 @@ class DocumentProcessorService:
                             "file_type": ext,
                             "file_name": file_name,
                             "image_path": object_path,
+                            "structured_fields": {
+                                **base_structured,
+                                "summary_text": summary,
+                            },
+                        }
+                    )
+                    block_idx += 1
+
+                if text_projection and quality_status != "rejected":
+                    blocks.append(
+                        {
+                            "block_index": block_idx,
+                            "type": "diagram_projection",
+                            "text": f"[diagram_projection] {text_projection}",
+                            "page": None,
+                            "section": page_name or img["name"],
+                            "sheet": None,
+                            "source_parser": "vlm_diagram",
+                            "file_type": ext,
+                            "file_name": file_name,
+                            "image_path": object_path,
+                            "structured_fields": {
+                                **base_structured,
+                                "text_projection": text_projection,
+                            },
                         }
                     )
                     block_idx += 1
@@ -1784,6 +2249,10 @@ class DocumentProcessorService:
                             "file_type": ext,
                             "file_name": file_name,
                             "image_path": object_path,
+                            "structured_fields": {
+                                **base_structured,
+                                "name": name,
+                            },
                         }
                     )
                     block_idx += 1
@@ -1818,6 +2287,10 @@ class DocumentProcessorService:
                                         "file_type": ext,
                                         "file_name": file_name,
                                         "image_path": object_path,
+                                        "structured_fields": {
+                                            **base_structured,
+                                            "name": miss,
+                                        },
                                     }
                                 )
                                 block_idx += 1
@@ -1839,16 +2312,40 @@ class DocumentProcessorService:
                             "file_type": ext,
                             "file_name": file_name,
                             "image_path": object_path,
+                            "structured_fields": {
+                                **base_structured,
+                                "src": src,
+                                "dst": dst,
+                                "relation_type": rel,
+                                "confidence": conf,
+                            },
                         }
                     )
                     block_idx += 1
+
+                analyses.append(
+                    {
+                        "image_path": object_path,
+                        "analysis_scope": "office_media",
+                        "analysis_name": self._clean_text(img.get("name")) or f"office_media_{img_idx}",
+                        "provider": "openai",
+                        "model_name": settings.OPENAI_VISION_MODEL,
+                        "prompt_version": "diagram_v1",
+                        "raw_payload": payload,
+                        "normalized": normalized,
+                        "text_projection": text_projection,
+                        "quality_score": quality_score,
+                        "quality_status": quality_status,
+                        "validation_flags": validation_flags,
+                    }
+                )
             except Exception as e:
                 logger.warning("VLM图形解析失败: file=%s, image=%s, err=%s", file_name, img.get("name"), e)
                 continue
 
         if blocks:
             logger.info("VLM图形解析完成: file=%s, image_count=%s, blocks=%s", file_name, len(images), len(blocks))
-        return blocks, image_blocks
+        return blocks, image_blocks, analyses
 
     @staticmethod
     def _load_diagram_font(size: int = 24) -> Any:
@@ -2010,7 +2507,7 @@ class DocumentProcessorService:
         self,
         file_data: bytes,
         file_name: str,
-        max_pages: int = 4,
+        max_pages: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         """
         使用 LibreOffice 进行高保真渲染：
@@ -2057,7 +2554,7 @@ class DocumentProcessorService:
 
                 doc = fitz.open(str(pdf_path))
                 try:
-                    total = min(max_pages, doc.page_count)
+                    total = doc.page_count if not max_pages or max_pages <= 0 else min(max_pages, doc.page_count)
                     for i in range(total):
                         page = doc.load_page(i)
                         pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
@@ -2074,6 +2571,40 @@ class DocumentProcessorService:
                     doc.close()
         except Exception as e:
             logger.warning("LibreOffice 渲染异常: file=%s, err=%s", file_name, e)
+            return []
+
+        return images
+
+    def _render_pdf_pages(
+        self,
+        file_data: bytes,
+        file_name: str,
+    ) -> List[Dict[str, Any]]:
+        """Render every PDF page to PNG for the visual-page base layer."""
+        if not fitz:
+            return []
+        if Path(file_name).suffix.lower() != ".pdf":
+            return []
+
+        images: List[Dict[str, Any]] = []
+        try:
+            doc = fitz.open(stream=file_data, filetype="pdf")
+            try:
+                for i in range(doc.page_count):
+                    page = doc.load_page(i)
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2.0, 2.0), alpha=False)
+                    images.append(
+                        {
+                            "name": f"page_{i+1}.png",
+                            "bytes": pix.tobytes("png"),
+                            "mime_type": "image/png",
+                            "page": i + 1,
+                        }
+                    )
+            finally:
+                doc.close()
+        except Exception as e:
+            logger.warning("PDF 页面渲染异常: file=%s, err=%s", file_name, e)
             return []
 
         return images
@@ -2557,16 +3088,17 @@ class DocumentProcessorService:
         images: List[Dict[str, Any]],
         start_index: int,
         max_images: int = 10,
-    ) -> List[Dict[str, Any]]:
+    ) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         对“整页快照图”执行 VLM 结构化解析。
         """
         if not settings.OPENAI_VISION_ENABLED or not settings.OPENAI_API_KEY:
-            return []
+            return [], []
         if not images:
-            return []
+            return [], []
 
         blocks: List[Dict[str, Any]] = []
+        analyses: List[Dict[str, Any]] = []
         block_idx = start_index
         max_images = max(1, int(max_images or 1))
         for img in images[:max_images]:
@@ -2624,6 +3156,8 @@ class DocumentProcessorService:
                     default_page_name=fallback_page_name,
                     default_page_id=fallback_page_id,
                 )
+                text_projection = self._build_vlm_text_projection(normalized)
+                quality_score, quality_status, validation_flags = self._score_vlm_analysis(normalized, image_path)
                 logger.info(
                     "VLM_OVERVIEW_FULL: file=%s, image=%s, sheet=%s, page=%s, scope=sheet_snapshot, diagram_overview=%s, process_description=%s, relationships=%s, evidence_texts=%s",
                     file_name,
@@ -2658,6 +3192,12 @@ class DocumentProcessorService:
                 page_name = self._clean_text(normalized.get("page_name")) or fallback_page_name
                 diagram_type = self._clean_text(normalized.get("diagram_type")) or "unknown"
                 summary = self._clean_text(normalized.get("summary_text"))
+                base_structured = {
+                    "page_id": page_id,
+                    "page_name": page_name,
+                    "diagram_type": diagram_type,
+                    "confidence": self._coerce_confidence(normalized.get("confidence"), default=0.65),
+                }
                 blocks.append(
                     {
                         "block_index": block_idx,
@@ -2673,6 +3213,7 @@ class DocumentProcessorService:
                         "file_type": ext,
                         "file_name": file_name,
                         "image_path": image_path or None,
+                        "structured_fields": dict(base_structured),
                     }
                 )
                 block_idx += 1
@@ -2689,6 +3230,31 @@ class DocumentProcessorService:
                             "file_type": ext,
                             "file_name": file_name,
                             "image_path": image_path or None,
+                            "structured_fields": {
+                                **base_structured,
+                                "summary_text": summary,
+                            },
+                        }
+                    )
+                    block_idx += 1
+
+                if text_projection and quality_status != "rejected":
+                    blocks.append(
+                        {
+                            "block_index": block_idx,
+                            "type": "diagram_projection",
+                            "text": f"[diagram_projection] {text_projection}",
+                            "page": page_no,
+                            "section": section_name or page_name,
+                            "sheet": sheet_name or None,
+                            "source_parser": "vlm_sheet_snapshot",
+                            "file_type": ext,
+                            "file_name": file_name,
+                            "image_path": image_path or None,
+                            "structured_fields": {
+                                **base_structured,
+                                "text_projection": text_projection,
+                            },
                         }
                     )
                     block_idx += 1
@@ -2709,6 +3275,10 @@ class DocumentProcessorService:
                             "file_type": ext,
                             "file_name": file_name,
                             "image_path": image_path or None,
+                            "structured_fields": {
+                                **base_structured,
+                                "name": name,
+                            },
                         }
                     )
                     block_idx += 1
@@ -2732,9 +3302,33 @@ class DocumentProcessorService:
                             "file_type": ext,
                             "file_name": file_name,
                             "image_path": image_path or None,
+                            "structured_fields": {
+                                **base_structured,
+                                "src": src,
+                                "dst": dst,
+                                "relation_type": rel,
+                                "confidence": conf,
+                            },
                         }
                     )
                     block_idx += 1
+
+                analyses.append(
+                    {
+                        "image_path": image_path or None,
+                        "analysis_scope": "sheet_snapshot",
+                        "analysis_name": self._clean_text(img.get("name")) or f"{fallback_page_name}_page_{page_no}",
+                        "provider": "openai",
+                        "model_name": settings.OPENAI_VISION_MODEL,
+                        "prompt_version": "diagram_v1",
+                        "raw_payload": payload,
+                        "normalized": normalized,
+                        "text_projection": text_projection,
+                        "quality_score": quality_score,
+                        "quality_status": quality_status,
+                        "validation_flags": validation_flags,
+                    }
+                )
             except Exception as e:
                 logger.warning(
                     "VLM_CALL_ERROR: file=%s, image=%s, sheet=%s, page=%s, err=%s",
@@ -2751,7 +3345,7 @@ class DocumentProcessorService:
             min(len(images), 6),
             len(blocks),
         )
-        return blocks
+        return blocks, analyses
 
     async def _extract_vlm_blocks_from_xlsx_diagrams(
         self,
@@ -3423,6 +4017,12 @@ class DocumentProcessorService:
                 "source_parser": block.get("source_parser"),
                 "file_type": block.get("file_type"),
                 "image_path": block.get("image_path"),
+                "document_unit_type": block.get("document_unit_type"),
+                "document_unit_key": block.get("document_unit_key"),
+                "document_unit_name": block.get("document_unit_name"),
+                "quality_score": block.get("quality_score"),
+                "quality_status": block.get("quality_status"),
+                "validation_flags": list(block.get("validation_flags") or []),
             }
             source_ref = {
                 "block_index": block.get("block_index"),
@@ -3433,6 +4033,8 @@ class DocumentProcessorService:
                 "section": block.get("section"),
                 "image_path": block.get("image_path"),
                 "text_preview": text[:500],
+                "document_unit_key": block.get("document_unit_key"),
+                "quality_status": block.get("quality_status"),
             }
 
             current_sheet = str(current_meta.get("sheet") or "").strip()
@@ -3478,6 +4080,21 @@ class DocumentProcessorService:
                     current_meta["sheet"] = meta.get("sheet")
                 if not current_meta.get("image_path") and meta.get("image_path"):
                     current_meta["image_path"] = meta.get("image_path")
+                if not current_meta.get("document_unit_key") and meta.get("document_unit_key"):
+                    current_meta["document_unit_key"] = meta.get("document_unit_key")
+                if not current_meta.get("document_unit_type") and meta.get("document_unit_type"):
+                    current_meta["document_unit_type"] = meta.get("document_unit_type")
+                if not current_meta.get("document_unit_name") and meta.get("document_unit_name"):
+                    current_meta["document_unit_name"] = meta.get("document_unit_name")
+                current_meta["quality_score"] = max(
+                    int(current_meta.get("quality_score") or 0),
+                    int(meta.get("quality_score") or 0),
+                )
+                current_meta["quality_status"] = (
+                    "rejected"
+                    if "rejected" in {str(current_meta.get("quality_status") or ""), str(meta.get("quality_status") or "")}
+                    else ("weak" if "weak" in {str(current_meta.get("quality_status") or ""), str(meta.get("quality_status") or "")} else str(meta.get("quality_status") or current_meta.get("quality_status") or "weak"))
+                )
 
         flush_current()
         logger.info(f"结构化切块完成: chunks={len(chunks)}")
@@ -3522,6 +4139,201 @@ class DocumentProcessorService:
                 }
             )
         return rows
+
+    async def _persist_document_structure(
+        self,
+        db: Any,
+        *,
+        file_md5: str,
+        blocks: List[Dict[str, Any]],
+        parent_chunks: List[Dict[str, Any]],
+        child_chunks: List[Dict[str, Any]],
+    ) -> None:
+        await db.execute(ChildChunk.__table__.delete().where(ChildChunk.file_md5 == file_md5))
+        await db.execute(ParentChunk.__table__.delete().where(ParentChunk.file_md5 == file_md5))
+        await db.execute(SemanticBlock.__table__.delete().where(SemanticBlock.file_md5 == file_md5))
+        await db.execute(DocumentUnit.__table__.delete().where(DocumentUnit.file_md5 == file_md5))
+
+        seen_units: set[str] = set()
+        for block in blocks:
+            unit_key = str(block.get("document_unit_key") or "").strip()
+            if not unit_key or unit_key in seen_units:
+                continue
+            seen_units.add(unit_key)
+            db.add(
+                DocumentUnit(
+                    file_md5=file_md5,
+                    unit_type=str(block.get("document_unit_type") or "document"),
+                    unit_key=unit_key,
+                    unit_name=str(block.get("document_unit_name") or unit_key),
+                    unit_order=block.get("document_unit_order"),
+                    page=block.get("page"),
+                    sheet=block.get("sheet"),
+                    section=block.get("section"),
+                    metadata_json=json.dumps(
+                        {
+                            "file_type": block.get("file_type"),
+                            "source_parser": block.get("source_parser"),
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+            )
+
+        for block in blocks:
+            structured = block.get("structured_fields") if isinstance(block.get("structured_fields"), dict) else {}
+            db.add(
+                SemanticBlock(
+                    file_md5=file_md5,
+                    block_index=int(block.get("block_index") or 0),
+                    document_unit_key=str(block.get("document_unit_key") or "") or None,
+                    block_type=str(block.get("type") or "text"),
+                    source_parser=str(block.get("source_parser") or "") or None,
+                    file_type=str(block.get("file_type") or "") or None,
+                    page=block.get("page"),
+                    sheet=block.get("sheet"),
+                    section=block.get("section"),
+                    row_no=block.get("row_no") or block.get("row"),
+                    image_path=block.get("image_path"),
+                    raw_text=self._clean_text(block.get("text")),
+                    normalized_text=self._clean_text(block.get("text")),
+                    structured_json=json.dumps(structured, ensure_ascii=False) if structured else None,
+                    quality_score=int(block.get("quality_score") or 0),
+                    quality_status=str(block.get("quality_status") or "weak"),
+                    parser_confidence=int(block.get("parser_confidence") or 0),
+                    validation_flags=json.dumps(list(block.get("validation_flags") or []), ensure_ascii=False),
+                    metadata_json=json.dumps(
+                        {
+                            "document_unit_name": block.get("document_unit_name"),
+                            "document_unit_type": block.get("document_unit_type"),
+                        },
+                        ensure_ascii=False,
+                    ),
+                )
+            )
+
+        for row in parent_chunks:
+            db.add(
+                ParentChunk(
+                    file_md5=file_md5,
+                    parent_chunk_id=int(row.get("parent_chunk_id") or 0),
+                    document_unit_key=str(row.get("document_unit_key") or "") or None,
+                    chunk_type=str(row.get("chunk_type") or "") or None,
+                    text_content=self._clean_text(row.get("text")),
+                    quality_score=int(row.get("quality_score") or 0),
+                    quality_status=str(row.get("quality_status") or "weak"),
+                    metadata_json=json.dumps(row.get("metadata") or {}, ensure_ascii=False),
+                )
+            )
+
+        for row in child_chunks:
+            db.add(
+                ChildChunk(
+                    file_md5=file_md5,
+                    child_chunk_id=int(row.get("child_chunk_id") or 0),
+                    parent_chunk_id=row.get("parent_chunk_id"),
+                    document_unit_key=str(row.get("document_unit_key") or "") or None,
+                    chunk_type=str(row.get("chunk_type") or "") or None,
+                    text_content=self._clean_text(row.get("text")),
+                    quality_score=int(row.get("quality_score") or 0),
+                    quality_status=str(row.get("quality_status") or "weak"),
+                    neighbor_prev_id=row.get("neighbor_prev_id"),
+                    neighbor_next_id=row.get("neighbor_next_id"),
+                    metadata_json=json.dumps(row.get("metadata") or {}, ensure_ascii=False),
+                )
+            )
+
+    async def _persist_visual_pages(
+        self,
+        db: Any,
+        *,
+        file_md5: str,
+        file_type: str,
+        visual_page_records: List[Dict[str, Any]],
+    ) -> None:
+        await db.execute(VisualPage.__table__.delete().where(VisualPage.file_md5 == file_md5))
+
+        filtered_records = [
+            item for item in (visual_page_records or [])
+            if self._is_visual_page_candidate(file_type=file_type, image_record=item)
+        ]
+        if not filtered_records:
+            return
+
+        unit_rows = (
+            await db.execute(
+                select(DocumentUnit).where(DocumentUnit.file_md5 == file_md5)
+            )
+        ).scalars().all()
+        unit_by_key = {str(unit.unit_key or ""): unit for unit in unit_rows}
+
+        seen_image_paths: set[str] = set()
+        for item in filtered_records:
+            image_path = self._clean_text(item.get("storage_path"))
+            if not image_path or image_path in seen_image_paths:
+                continue
+            seen_image_paths.add(image_path)
+
+            sheet = self._clean_text(item.get("sheet")) or None
+            section = self._clean_text(item.get("section")) or None
+            page_raw = item.get("page")
+            try:
+                page = int(page_raw) if page_raw is not None else None
+            except Exception:
+                page = None
+
+            inferred_unit = self._infer_document_unit(
+                {
+                    "file_type": file_type,
+                    "sheet": sheet,
+                    "section": section,
+                    "page": page,
+                    "type": "visual_page",
+                }
+            )
+            unit_key = str(inferred_unit.get("unit_key") or "").strip()
+            linked_unit = unit_by_key.get(unit_key)
+
+            page_label = (
+                f"sheet:{sheet}" if sheet
+                else (f"page:{page}" if page is not None else (f"section:{section}" if section else unit_key or "visual_page"))
+            )
+
+            db.add(
+                VisualPage(
+                    file_md5=file_md5,
+                    document_unit_id=linked_unit.id if linked_unit else None,
+                    unit_type=str(inferred_unit.get("unit_type") or "") or None,
+                    page=page,
+                    sheet=sheet,
+                    section=section,
+                    page_label=page_label,
+                    image_path=image_path,
+                    image_width=item.get("image_width"),
+                    image_height=item.get("image_height"),
+                    render_source=str(item.get("source_parser") or "") or None,
+                    render_version="v1",
+                    quality_status="accepted",
+                )
+            )
+
+    def _is_visual_page_candidate(self, *, file_type: str, image_record: Dict[str, Any]) -> bool:
+        source_parser = str(image_record.get("source_parser") or "").strip().lower()
+        image_path = self._clean_text(image_record.get("storage_path"))
+        if not image_path:
+            return False
+
+        page_level_sources = {
+            "xlsx_page_render",
+            "xlsx_sheet_snapshot",
+            "pdf_page_render",
+            "docx_page_render",
+            "ppt_slide_render",
+        }
+        if source_parser in page_level_sources:
+            return True
+
+        return False
 
     async def process_document(
         self,
@@ -3568,6 +4380,7 @@ class DocumentProcessorService:
                     return False
 
                 ext = Path(file_name).suffix.lower().lstrip(".")
+                vlm_analyses: List[Dict[str, Any]] = []
                 quality = self._analyze_blocks_router_quality(blocks)
                 max_vlm_images = max(1, int(getattr(settings, "OPENAI_VISION_MAX_IMAGES_PER_FILE", 10) or 10))
                 max_snapshot_pages = max(1, int(getattr(settings, "XLSX_SNAPSHOT_MAX_PAGES_PER_SHEET", 3) or 3))
@@ -3606,7 +4419,7 @@ class DocumentProcessorService:
                         )
                     else:
                         next_idx = (max([int(b.get("block_index") or 0) for b in blocks]) + 1) if blocks else 0
-                        vlm_blocks, office_vlm_images = await self._extract_office_vlm_diagram_blocks(
+                        vlm_blocks, office_vlm_images, office_vlm_analyses = await self._extract_office_vlm_diagram_blocks(
                             file_data=file_data,
                             file_name=file_name,
                             file_md5=file_md5,
@@ -3646,6 +4459,8 @@ class DocumentProcessorService:
                                 file_md5,
                                 len(office_vlm_images),
                             )
+                        if office_vlm_analyses:
+                            vlm_analyses.extend(office_vlm_analyses)
                         if vlm_blocks:
                             blocks.extend(vlm_blocks)
                             logger.info(
@@ -3657,6 +4472,7 @@ class DocumentProcessorService:
                             )
 
                 xlsx_sheet_snapshots_for_vlm: List[Dict[str, Any]] = []
+                visual_page_records_raw: List[Dict[str, Any]] = []
 
 
                 table_rows_raw = self._collect_table_rows(blocks)
@@ -3681,6 +4497,53 @@ class DocumentProcessorService:
                     logger.warning(f"表格行结构化入库失败（降级继续）: file={file_name}, err={table_err}")
 
                 image_blocks_raw: List[Dict[str, Any]] = []
+                if ext == "pdf":
+                    try:
+                        pdf_page_images = self._render_pdf_pages(file_data=file_data, file_name=file_name)
+                        page_render_idx = 0
+                        for page_img in pdf_page_images:
+                            raw_bytes = page_img.get("bytes") or b""
+                            if not raw_bytes:
+                                continue
+                            page_render_idx += 1
+                            page_no = int(page_img.get("page") or 0) or page_render_idx
+                            object_path = minio_client.build_document_image_path(
+                                user_id=user_id,
+                                file_md5=file_md5,
+                                sheet_name=f"page_{page_no}",
+                                image_index=page_no,
+                                ext="png",
+                            )
+                            uploaded = minio_client.upload_bytes(
+                                bucket_name=settings.MINIO_DEFAULT_BUCKET,
+                                object_name=object_path,
+                                data=raw_bytes,
+                                content_type="image/png",
+                            )
+                            if not uploaded:
+                                continue
+                            img_w = 0
+                            img_h = 0
+                            try:
+                                with Image.open(BytesIO(raw_bytes)) as im:
+                                    img_w, img_h = im.size
+                            except Exception:
+                                pass
+                            visual_page_records_raw.append(
+                                {
+                                    "page": page_no,
+                                    "sheet": None,
+                                    "section": None,
+                                    "storage_path": object_path,
+                                    "image_width": img_w or None,
+                                    "image_height": img_h or None,
+                                    "source_parser": "pdf_page_render",
+                                }
+                            )
+                        logger.info("PDF visual pages prepared: file=%s, pages=%s", file_name, len(visual_page_records_raw))
+                    except Exception as pdf_render_err:
+                        logger.warning(f"PDF 页面视觉对象生成失败（降级继续）: file={file_name}, err={pdf_render_err}")
+
                 if ext in ("xlsx", "xlsm", "xltx", "xltm"):
                     try:
                         await db.execute(
@@ -3705,6 +4568,57 @@ class DocumentProcessorService:
                             file_md5,
                             candidate_sheets,
                         )
+                        page_level_images = self._render_office_pages_via_libreoffice(
+                            file_data=file_data,
+                            file_name=file_name,
+                            max_pages=None,
+                        )
+                        if page_level_images:
+                            page_render_idx = 0
+                            for page_img in page_level_images:
+                                raw_bytes = page_img.get("bytes") or b""
+                                if not raw_bytes:
+                                    continue
+                                page_render_idx += 1
+                                page_no = int(page_img.get("page") or 0) or page_render_idx
+                                object_path = minio_client.build_document_image_path(
+                                    user_id=user_id,
+                                    file_md5=file_md5,
+                                    sheet_name="page_render",
+                                    image_index=page_no,
+                                    ext="png",
+                                )
+                                uploaded = minio_client.upload_bytes(
+                                    bucket_name=settings.MINIO_DEFAULT_BUCKET,
+                                    object_name=object_path,
+                                    data=raw_bytes,
+                                    content_type="image/png",
+                                )
+                                if not uploaded:
+                                    continue
+                                img_w = 0
+                                img_h = 0
+                                try:
+                                    with Image.open(BytesIO(raw_bytes)) as im:
+                                        img_w, img_h = im.size
+                                except Exception:
+                                    pass
+                                visual_page_records_raw.append(
+                                    {
+                                        "page": page_no,
+                                        "sheet": None,
+                                        "section": None,
+                                        "storage_path": object_path,
+                                        "image_width": img_w or None,
+                                        "image_height": img_h or None,
+                                        "source_parser": "xlsx_page_render",
+                                    }
+                                )
+                            logger.info(
+                                "XLSX page-level visual pages prepared: file=%s, pages=%s",
+                                file_name,
+                                len(page_level_images),
+                            )
                         sheet_snapshots = self._render_xlsx_sheets_via_libreoffice(
                             file_data=file_data,
                             file_name=file_name,
@@ -3873,13 +4787,15 @@ class DocumentProcessorService:
                     and xlsx_sheet_snapshots_for_vlm
                 ):
                     next_idx = (max([int(b.get("block_index") or 0) for b in blocks]) + 1) if blocks else 0
-                    snapshot_vlm_blocks = await self._extract_vlm_blocks_from_snapshot_images(
+                    snapshot_vlm_blocks, snapshot_vlm_analyses = await self._extract_vlm_blocks_from_snapshot_images(
                         file_name=file_name,
                         ext=ext,
                         images=xlsx_sheet_snapshots_for_vlm,
                         start_index=next_idx,
                         max_images=max_vlm_images,
                     )
+                    if snapshot_vlm_analyses:
+                        vlm_analyses.extend(snapshot_vlm_analyses)
                     if snapshot_vlm_blocks:
                         blocks.extend(snapshot_vlm_blocks)
                         logger.info(
@@ -3894,6 +4810,8 @@ class DocumentProcessorService:
                             file_name,
                             len(xlsx_sheet_snapshots_for_vlm),
                         )
+
+                blocks = self._enrich_blocks(blocks)
 
                 try:
                     if relation_search_service.should_build_relation_index(
@@ -3929,7 +4847,69 @@ class DocumentProcessorService:
                     )
                     logger.info("经历索引构建: file_md5=%s, items=%s", file_md5, exp_stats.get("items", 0))
                 except Exception as exp_err:
-                    logger.warning(f"经历索引构建失败（已降级继续）: file={file_name}, err={exp_err}")
+                        logger.warning(f"经历索引构建失败（已降级继续）: file={file_name}, err={exp_err}")
+
+                parent_chunks = self._build_parent_chunks(blocks)
+                child_chunks = self._build_child_chunks(chunks, parent_chunks)
+                try:
+                    await self._persist_document_structure(
+                        db=db,
+                        file_md5=file_md5,
+                        blocks=blocks,
+                        parent_chunks=parent_chunks,
+                        child_chunks=child_chunks,
+                    )
+                    await db.flush()
+                    logger.info(
+                        "文档结构分层入库完成: file=%s, units=%s, blocks=%s, parent_chunks=%s, child_chunks=%s",
+                        file_name,
+                        len({str(b.get('document_unit_key') or '') for b in blocks if str(b.get('document_unit_key') or '')}),
+                        len(blocks),
+                        len(parent_chunks),
+                        len(child_chunks),
+                    )
+                except Exception as struct_err:
+                    logger.warning(f"文档结构分层入库失败（降级继续）: file={file_name}, err={struct_err}")
+
+                try:
+                    await self._persist_visual_pages(
+                        db=db,
+                        file_md5=file_md5,
+                        file_type=ext or "unknown",
+                        visual_page_records=visual_page_records_raw,
+                    )
+                    await db.flush()
+                    logger.info(
+                        "页面级视觉对象入库完成: file=%s, visual_pages=%s",
+                        file_name,
+                        len(
+                            [
+                                item for item in (visual_page_records_raw or [])
+                                if self._is_visual_page_candidate(
+                                    file_type=ext or "unknown",
+                                    image_record=item,
+                                )
+                            ]
+                        ),
+                    )
+                except Exception as visual_page_err:
+                    logger.warning(f"页面级视觉对象入库失败（降级继续）: file={file_name}, err={visual_page_err}")
+
+                try:
+                    await self._persist_visual_page_analyses(
+                        db=db,
+                        file_md5=file_md5,
+                        user_id=user_id,
+                        analyses=vlm_analyses,
+                    )
+                    await db.flush()
+                    logger.info(
+                        "视觉页面分析结果入库完成: file=%s, analyses=%s",
+                        file_name,
+                        len(vlm_analyses),
+                    )
+                except Exception as visual_analysis_err:
+                    logger.warning(f"视觉页面分析结果入库失败（降级继续）: file={file_name}, err={visual_analysis_err}")
 
                 await search_service.ensure_index_exists()
 
@@ -3968,6 +4948,27 @@ class DocumentProcessorService:
                     if is_public is not None
                     else (file_record.is_public if file_record.is_public is not None else False)
                 )
+
+                try:
+                    visual_stats = await visual_search_service.rebuild_for_file(
+                        db=db,
+                        file_md5=file_md5,
+                        user_id=user_id,
+                        org_tag=org_tag_value,
+                        kb_profile=selected_profile,
+                        is_public=is_public_value,
+                    )
+                    logger.info(
+                        "视觉索引构建: file=%s, pages=%s, indexed=%s, pending=%s, errors=%s",
+                        file_name,
+                        visual_stats.get("pages", 0),
+                        visual_stats.get("indexed", 0),
+                        visual_stats.get("pending", 0),
+                        visual_stats.get("errors", 0),
+                    )
+                except Exception as visual_index_err:
+                    logger.warning(f"视觉索引构建失败（降级继续）: file={file_name}, err={visual_index_err}")
+
                 await db.execute(ChunkSource.__table__.delete().where(ChunkSource.file_md5 == file_md5))
                 await db.execute(DocumentVector.__table__.delete().where(DocumentVector.file_md5 == file_md5))
                 es_cleanup_ok = await es_client.delete_by_query(
@@ -4157,6 +5158,13 @@ class DocumentProcessorService:
             try:
                 await es_client.delete_by_query(
                     index=search_service.INDEX_NAME,
+                    query={"term": {"file_md5": file_md5}},
+                )
+            except Exception:
+                pass
+            try:
+                await es_client.delete_by_query(
+                    index=visual_search_service.INDEX_NAME,
                     query={"term": {"file_md5": file_md5}},
                 )
             except Exception:

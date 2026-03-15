@@ -6,7 +6,9 @@ import type {
   MergeData,
   UploadedFileInfo,
   EsPreviewItem,
-  SourceDetailData
+  SourceDetailData,
+  StructuredOverviewFileInfo,
+  StructuredFileDetailData,
 } from "../types/api";
 
 export async function uploadChunk(payload: {
@@ -86,6 +88,18 @@ export async function getSourceDetail(payload: {
   }
   const resp = await http.get<ApiResponse<SourceDetailData>>("/api/v1/documents/source-detail", {
     params
+  });
+  return resp.data;
+}
+
+export async function getStructuredOverview() {
+  const resp = await http.get<ApiResponse<StructuredOverviewFileInfo[]>>("/api/v1/documents/structured-overview");
+  return resp.data;
+}
+
+export async function getStructuredDetail(fileMd5: string) {
+  const resp = await http.get<ApiResponse<StructuredFileDetailData>>("/api/v1/documents/structured-detail", {
+    params: { file_md5: fileMd5 }
   });
   return resp.data;
 }

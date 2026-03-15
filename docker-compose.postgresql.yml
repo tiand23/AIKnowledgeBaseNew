@@ -19,6 +19,7 @@ services:
       - ES_HOST=http://elasticsearch:9200
       - MINIO_ENDPOINT=minio:9000
       - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - GOOGLE_APPLICATION_CREDENTIALS=${GOOGLE_APPLICATION_CREDENTIALS:-/app/secrets/gcp-vertex.json}
       # 多 worker 会重复执行 lifespan 初始化（建表/DDL/Kafka consumer），
       # 在当前实现下会触发并发冲突与偶发连接重置；先固定为 1 保证稳定。
       - WORKERS=1
@@ -33,6 +34,7 @@ services:
         condition: service_started
     volumes:
       - ./logs:/app/logs
+      - ./.secrets:/app/secrets:ro
     restart: always
     networks:
       - app-network
@@ -53,7 +55,12 @@ services:
 
   # PostgreSQL 数据库（企业生产推荐）
   postgres:
-    image: postgres:16-alpine
+    build:
+      context: .
+      dockerfile: docker/postgres-age/Dockerfile
+      args:
+        AGE_TAG: ${POSTGRES_AGE_TAG:-PG16/v1.6.0-rc0}
+    image: aiknowledgebase-postgres-age:16
     container_name: fastapi-postgres
     environment:
       POSTGRES_USER: ${DATABASE_USER:-postgres}

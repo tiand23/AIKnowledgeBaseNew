@@ -2,6 +2,7 @@
 Kafka 客户端
 """
 from aiokafka import AIOKafkaProducer, AIOKafkaConsumer
+from aiokafka.admin import AIOKafkaAdminClient, NewTopic
 from aiokafka.structs import TopicPartition
 from aiokafka.errors import KafkaError
 from typing import Optional, List, Callable, Dict, Any
@@ -35,6 +36,51 @@ class KafkaClient:
         except Exception as e:
             logger.error(f"Kafka 生产者初始化失败: {e}")
             raise
+
+    async def ensure_topics(
+        self,
+        topics: List[str],
+        num_partitions: int = 1,
+        replication_factor: int = 1,
+    ) -> None:
+        """
+        启动时显式确保核心 topic 存在，避免消费者在 topic 尚未自动创建时启动超时。
+        """
+        topic_names = [str(topic).strip() for topic in topics if str(topic).strip()]
+        if not topic_names:
+            return
+
+        admin = AIOKafkaAdminClient(
+            bootstrap_servers=settings.KAFKA_BOOTSTRAP_SERVERS,
+            client_id="fastapi-topic-admin",
+        )
+        try:
+            await admin.start()
+            existing_topics = await admin.list_topics()
+            missing_topics = [topic for topic in topic_names if topic not in existing_topics]
+            if not missing_topics:
+                logger.info("Kafka topics 已存在: %s", topic_names)
+                return
+
+            await admin.create_topics(
+                [
+                    NewTopic(
+                        name=topic,
+                        num_partitions=num_partitions,
+                        replication_factor=replication_factor,
+                    )
+                    for topic in missing_topics
+                ]
+            )
+            logger.info("Kafka topics 创建成功: %s", missing_topics)
+        except Exception as e:
+            logger.error(f"确保 Kafka topics 存在失败: {e}")
+            raise
+        finally:
+            try:
+                await admin.close()
+            except Exception:
+                pass
     
     async def close(self):
         try:
@@ -196,6 +242,7 @@ class KafkaClient:
         Returns:
             AIOKafkaConsumer: 消费者实例
         """
+        consumer: Optional[AIOKafkaConsumer] = None
         try:
             consumer = AIOKafkaConsumer(
                 *topics,
@@ -218,6 +265,11 @@ class KafkaClient:
             logger.info(f"Kafka 消费者创建成功: topics={topics}, group_id={group_id}")
             return consumer
         except Exception as e:
+            if consumer is not None:
+                try:
+                    await consumer.stop()
+                except Exception:
+                    pass
             logger.error(f"创建 Kafka 消费者失败: {e}")
             raise
     

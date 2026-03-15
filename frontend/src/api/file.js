@@ -58,3 +58,13 @@ export async function getSourceDetail(payload) {
     });
     return resp.data;
 }
+export async function getStructuredOverview() {
+    const resp = await http.get("/api/v1/documents/structured-overview");
+    return resp.data;
+}
+export async function getStructuredDetail(fileMd5) {
+    const resp = await http.get("/api/v1/documents/structured-detail", {
+        params: { file_md5: fileMd5 }
+    });
+    return resp.data;
+}
